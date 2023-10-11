@@ -9,6 +9,7 @@ from .pdf_convertor import Convert2PDF
 class DocxTemplatePlaceholder:
 
     def __init__(self,
+                 username: str,
                  template: str,
                  tags: Dict,
 ):
@@ -17,15 +18,16 @@ class DocxTemplatePlaceholder:
             self.template_document = Document(template)
             self.file_name = template.split('/')[-1]
             self.replace_tags = self.__prepare_tags(tags)
+            self.username = username
         except:
             self.error = ErrorType.missing_doc
 
     def process(self):
         try:
             self.__process(self.template_document, self.replace_tags)
-            path = FILE_FOLDER + "/" + self.file_name
+            path = FILE_FOLDER + self.username + "/" + self.file_name
             self.template_document.save(path)
-            return Convert2PDF(path).DocxToPdf()
+            return Convert2PDF(path, self.username).DocxToPdf()
         except:
             return ErrorType.missing_doc
 

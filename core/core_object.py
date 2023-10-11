@@ -4,9 +4,10 @@ from .docx_template_placeholder import DocxTemplatePlaceholder
 
 class Core:
 
-    def __init__(self, file: Any, regex: Dict):
+    def __init__(self, username: str, file: Any, regex: Dict):
+        self.username = username
         self.template = file
         self.tags = regex
 
     def process(self):
-        return DocxTemplatePlaceholder(self.template, self.tags).process()
+        return DocxTemplatePlaceholder(self.username, self.template, self.tags).process()

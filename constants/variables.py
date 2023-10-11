@@ -1,1 +1,1 @@
-FILE_FOLDER = "../files"
+FILE_FOLDER = "../"

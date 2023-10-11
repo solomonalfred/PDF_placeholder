@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF template</title>
+</head>
+<body>
+    <h1>Автозаполнитель документа</h1>
+    <input type="file" id="docxInput">
+    <button id="uploadButton">JSON</button>
+
+    <form id="valuesForm" style="display: none;">
+    </form>
+    <button id="processButton" style="display: none;">Process</button>
+    <a id="downloadLink" style="display: none;">Download</a> <!-- Download Link -->
+    <script>
+        document.getElementById("uploadButton").addEventListener("click", function() {
+            const fileInput = document.getElementById("docxInput");
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const token = "{{ access_token }}"; // Replace with actual token
+            const nickname = "{{ nickname }}"; // Replace with actual nickname
+            const headers = new Headers();
+            headers.append('Authorization', `Bearer ${token}`);
+
+            fetch('/user/tags', {
+                method: 'POST',
+                body: formData,
+                headers: headers
+            })
+            .then(response => response.json())
+            .then(tags => {
+                const form = document.getElementById("valuesForm");
+                form.innerHTML = ""; // Clear previous form elements
+
+                tags.forEach(tag => {
+                    const label = document.createElement("label");
+                    label.textContent = `${tag}:`;
+                    form.appendChild(label);
+
+                    const input = document.createElement("input");
+                    input.type = "text";
+                    input.name = tag;
+                    form.appendChild(input);
+
+                    form.appendChild(document.createElement("br"));
+                });
+
+                form.style.display = "block";
+                document.getElementById("processButton").style.display = "block";
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+
+        document.getElementById("processButton").addEventListener("click", function() {
+            const formData = new FormData(document.getElementById("valuesForm"));
+            const data = {};
+
+            formData.forEach((value, key) => {
+                data[key] = value;
+            });
+
+            const token = "{{ access_token }}"; // Replace with actual token
+            const filename = document.getElementById("docxInput").files[0].name; // Get the uploaded file name
+
+            data.filename = filename; // Add filename to the data object
+            const headers = new Headers();
+            headers.append('Authorization', `Bearer ${token}`);
+
+            fetch('/user/placeholder_process', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` // Add the Authorization header
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.url) {
+                    const downloadLink = document.getElementById("downloadLink");
+                    downloadLink.style.display = "block";
+                    downloadLink.href = result.url; // Construct the URL for downloading
+                    downloadLink.textContent = "Download";
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+
+    </script>
+</body>
+</html>

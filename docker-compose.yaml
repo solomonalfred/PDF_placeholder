@@ -1,11 +1,19 @@
 version: "3.9"
 
 services:
+  mongodb:
+    container_name: mongodb
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./data:/data
+
   api:
     container_name: pdf_convertor_python
     image: pdf_convertor_python
     build:
-      dockerfile: "docker_/api/Dockerfile"
+      dockerfile: "docker/api/Dockerfile"
     volumes:
       - ./files:/files
     ports:

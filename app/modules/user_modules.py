@@ -5,12 +5,13 @@ from constants.variables import *
 from fastapi import UploadFile, File
 from docx import Document
 import re
+import asyncio
 
 
-def save_file(input_file_data: UploadFile = File(...)):
+def save_file(username: str, input_file_data: UploadFile = File(...)):
     try:
         filename = str(uuid.uuid4())[:8] + '_' + input_file_data.filename
-        path = os.path.join(FILE_FOLDER, filename)
+        path = os.path.join(FILE_FOLDER + username, filename)
         with open(f'{path}', "wb") as buffer:
             shutil.copyfileobj(input_file_data.file, buffer)
         return path
@@ -18,7 +19,7 @@ def save_file(input_file_data: UploadFile = File(...)):
         return None
 
 def get_tags(file_path: str):
-    tags = {}
+    tags = []
     pattern = r"<<(.*?)>>"
     def process(doc):
         for p in doc.paragraphs:
@@ -27,7 +28,7 @@ def get_tags(file_path: str):
                 text = inline[i].text
                 matches = re.findall(pattern, text)
                 for match in matches:
-                    tags[match] = ""
+                    tags.append(match)
         for table in doc.tables:
             for row in table.rows:
                 for cell in row.cells:
@@ -35,16 +36,15 @@ def get_tags(file_path: str):
 
     doc = Document(file_path)
     process(doc)
-    return tags
+    return list(set(tags))
 
+def dict_tags(tags):
+    tag = {}
+    for i in tags:
+        tag[i] = ""
+    return tag
 
-def prepare_regex(text):
-    regex = {}
-    if text is None:
-        return regex
-    reg = text.split("\r\n")
-    for tag in reg:
-        if tag.find(":") != -1:
-            value = tag.replace(" ", "").split(":")
-            regex[value[0]] = value[1]
-    return regex
+def transform_user(old: dict, new: dict):
+    old.update(new)
+    return old
+

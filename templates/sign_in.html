@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<h1>Авторизация</h1>
+    <form method="post" action="/auth/signin">
+        {% if msg %}
+            <font color="red">{{ msg }}</font><br>
+        {% endif %}
+        <label for="nickname">Никнейм:</label><br>
+        <input type="text" id="nickname" name="nickname" required><br>
+
+        <label for="password">Пароль:</label><br>
+        <input type="password" id="password" name="password" required><br>
+
+        <input type="submit" value="Войти">
+    </form>
+
+</body>
+</html>

@@ -4,4 +4,6 @@ python-multipart
 Jinja2
 requests
 python-docx
-docker
+python-jose
+passlib[bcrypt]
+motor

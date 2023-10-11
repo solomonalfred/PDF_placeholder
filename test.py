@@ -1,17 +1,65 @@
 import requests
 import json
 
-file = {'file': open("./test_files/typical.docx", 'rb')}
+# Todo: Потоковая отдача файлов
 
-tags = {"Browser": "Gooogle",
-         "Version": "0.0.0.0.1",
-         "IP": "0.0.0.127",
-         "Location": "Russia",
-         "Created": "Konstantine"}
+# server url: http://194.58.121.210:7777
+# host url: http://0.0.0.0:7777
 
-data = {"tags": json.dumps(tags)}
+# регистрация через апи
+url = "http://0.0.0.0:7777/api/signup"
+data = {
+    "name": "Nik",
+    "username": "murder",
+    "email": "nik@mail.ru",
+    "password": "12345"
+}
+res = requests.post(url, data=data)
+print(res.json())
+print(res.status_code)
 
-res = requests.post("http://81.200.156.178:7777/api_module", files=file, data=data)
+# получение access token
+url = "http://0.0.0.0:7777/api/access_token"
+username = "murder"
+password = "12345"
+data = {
+        "username": username,
+        "password": password
+    }
+res = requests.post(url, data=data)
+token = res.json()
+print(token)
 
-with open("out_files/out.pdf", "wb") as code:
-    code.write(res.content)
+
+# получение тэгов на заполнение (не обязательно)
+url = "http://0.0.0.0:7777/api_user/placeholder_items"
+headers = {"Authorization": f"{token['token_type']} {token['access_token']}"}
+files = {"file": open("test_files/pdf_test.docx", "rb")}
+res = requests.post(url, files=files, headers=headers)
+data = res.json()
+print(data)
+
+# data["Browser"] = "Gooogle"
+# data["Version"] = "0.0.0.0.1"
+# data["IP"] = "0.0.0.127"
+# data["Location"] = "Russia"
+# data["Created"] = "Konstantine"
+
+filename = {"filename": "pdf_test.docx"}
+
+
+# заполнение и конвертация (возврат через ссылку)
+url = "http://0.0.0.0:7777/api_user/placeholder_link_process"
+res = requests.post(url, params=filename, json=data, headers=headers)
+print(res.json())
+
+
+# заполнение и конвертация (возврат через бинарник)
+url = "http://0.0.0.0:7777/api_user/placeholder_process"
+res = requests.post(url, params=filename, json=data, headers=headers)
+
+with open('out_test_files/out.pdf', 'wb') as file:
+    file.write(res.content)
+print(res.status_code)
+
+
