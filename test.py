@@ -7,7 +7,7 @@ import json
 # host url: http://0.0.0.0:7777
 
 # регистрация через апи
-url = "http://0.0.0.0:7777/api/signup"
+url = "http://194.58.121.210:7777/api/signup"
 data = {
     "name": "Nik",
     "username": "murder",
@@ -19,7 +19,7 @@ print(res.json())
 print(res.status_code)
 
 # получение access token
-url = "http://0.0.0.0:7777/api/access_token"
+url = "http://194.58.121.210:7777/api/access_token"
 username = "murder"
 password = "12345"
 data = {
@@ -32,7 +32,7 @@ print(token)
 
 
 # получение тэгов на заполнение (не обязательно)
-url = "http://0.0.0.0:7777/api_user/placeholder_items"
+url = "http://194.58.121.210:7777/api_user/placeholder_items"
 headers = {"Authorization": f"{token['token_type']} {token['access_token']}"}
 files = {"file": open("test_files/pdf_test.docx", "rb")}
 res = requests.post(url, files=files, headers=headers)
@@ -49,13 +49,13 @@ filename = {"filename": "pdf_test.docx"}
 
 
 # заполнение и конвертация (возврат через ссылку)
-url = "http://0.0.0.0:7777/api_user/placeholder_link_process"
+url = "http://194.58.121.210:7777/api_user/placeholder_link_process"
 res = requests.post(url, params=filename, json=data, headers=headers)
 print(res.json())
 
 
 # заполнение и конвертация (возврат через бинарник)
-url = "http://0.0.0.0:7777/api_user/placeholder_process"
+url = "http://194.58.121.210:7777/api_user/placeholder_process"
 res = requests.post(url, params=filename, json=data, headers=headers)
 
 with open('out_test_files/out.pdf', 'wb') as file:

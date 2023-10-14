@@ -22,11 +22,54 @@ def get_tags(file_path: str):
     tags = []
     pattern = r"<<(.*?)>>"
     def process(doc):
+        reg = ""
         for p in doc.paragraphs:
             inline = p.runs
+            flag = False
             for i in range(len(inline)):
-                text = inline[i].text
-                matches = re.findall(pattern, text)
+                left = inline[i].text.find("<<")
+                left_part = inline[i].text.find("<")
+                right = inline[i].text.find(">>")
+                right_part = inline[i].text.find(">")
+                if left != -1 and right != -1:
+                    reg = inline[i].text
+                elif left != -1:
+                    reg += inline[i].text
+                    inline[i].text = ""
+                    flag = True
+                    continue
+                elif right != -1:
+                    reg += inline[i].text
+                    inline[i].text = ""
+                    flag = False
+                elif left == -1 and right == -1 and flag:
+                    reg += inline[i].text
+                    inline[i].text = ""
+                    continue
+                elif left == -1 and right != -1 and flag:
+                    reg += inline[i].text
+                    inline[i].text = ""
+                elif left_part != -1:
+                    if len(inline) > i + 1 and inline[i + 1].text[0] == "<":
+                        reg += inline[i].text
+                        inline[i].text = ""
+                        flag = True
+                        continue
+                    else:
+                        continue
+                elif right_part != -1:
+                    if len(inline) > i + 1 and inline[i + 1].text[0] == ">":
+                        reg += inline[i].text
+                        inline[i].text = ""
+                        continue
+                    elif reg[-1] == ">":
+                        reg += inline[i].text
+                        inline[i].text = ""
+                    else:
+                        continue
+                else:
+                    continue
+                matches = re.findall(pattern, reg)
                 for match in matches:
                     tags.append(match)
         for table in doc.tables:

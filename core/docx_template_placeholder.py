@@ -3,7 +3,7 @@ from docx import Document
 from typing import Dict
 from constants.variables import *
 from constants.msg import ErrorType
-from .pdf_convertor import Convert2PDF
+from core.pdf_convertor import Convert2PDF
 
 
 class DocxTemplatePlaceholder:
@@ -32,14 +32,60 @@ class DocxTemplatePlaceholder:
             return ErrorType.missing_doc
 
     def __process(self, doc, tags):
+        reg = ""
         for p in doc.paragraphs:
             inline = p.runs
+            flag = False
             for i in range(len(inline)):
                 # Todo кароч здесь по кусочкам условия надо ловить
+                left = inline[i].text.find("<<")
+                left_part = inline[i].text.find("<")
+                right = inline[i].text.find(">>")
+                right_part = inline[i].text.find(">")
+                if left != -1 and right != -1:
+                    reg = inline[i].text
+                elif left != -1:
+                    reg += inline[i].text
+                    inline[i].text = ""
+                    flag = True
+                    continue
+                elif right != -1:
+                    reg += inline[i].text
+                    inline[i].text = ""
+                    flag = False
+                elif left == -1 and right == -1 and flag:
+                    reg += inline[i].text
+                    inline[i].text = ""
+                    continue
+                elif left == -1 and right != -1 and flag:
+                    reg += inline[i].text
+                    inline[i].text = ""
+                elif left_part != -1:
+                    if len(inline) > i+1 and inline[i + 1].text[0] == "<":
+                        reg += inline[i].text
+                        inline[i].text = ""
+                        flag = True
+                        continue
+                    else: continue
+                elif right_part != -1:
+                    if len(inline) > i+1 and inline[i + 1].text[0] == ">":
+                        reg += inline[i].text
+                        inline[i].text = ""
+                        continue
+                    elif reg[-1] == ">":
+                        reg += inline[i].text
+                        inline[i].text = ""
+                    else:
+                        continue
+                else:
+                    continue
+
                 for regex, replace in tags.items():
-                    if regex.search(inline[i].text):
-                        text = regex.sub(replace, inline[i].text)
+                    if regex.search(reg):
+                        text = regex.sub(replace, reg)
                         inline[i].text = text
+                        break
+                reg = ""
 
         for table in doc.tables:
             for row in table.rows:
@@ -51,3 +97,5 @@ class DocxTemplatePlaceholder:
         for regex, replace in tags.items():
             done_tags[re.compile(fr"<<{regex}>>")] = replace
         return done_tags
+
+# DocxTemplatePlaceholder("out_test_files", "./test_files/pdf_test_original.docx", {"name": "idi", "lastname": "na", "data": "hui"}).process()
