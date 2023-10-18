@@ -6,11 +6,13 @@ from fastapi import UploadFile, File
 from docx import Document
 import re
 import asyncio
+from collections import defaultdict
 
 
 def save_file(username: str, input_file_data: UploadFile = File(...)):
     try:
-        filename = str(uuid.uuid4())[:8] + '_' + input_file_data.filename
+        # str(uuid.uuid4())[:8] + '_' +
+        filename = input_file_data.filename
         path = os.path.join(FILE_FOLDER + username, filename)
         with open(f'{path}', "wb") as buffer:
             shutil.copyfileobj(input_file_data.file, buffer)
@@ -91,3 +93,10 @@ def transform_user(old: dict, new: dict):
     old.update(new)
     return old
 
+def delete_transform(old: dict, new: dict):
+    if len(old) == 1 and old.get(new['key']) is not None:
+        return {}
+    if len(old) == 1 and old.get(new['key']) is None:
+        return old
+    del old[new['key']]
+    return old

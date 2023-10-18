@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from app.dependencies.oauth2 import *
 from app.modules.user_directories import *
+from collections import defaultdict
 
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -39,8 +40,8 @@ async def sign_up(
             "nickname": nickname,
             "email": email,
             "key": hashed.hash_password(password),
-            "files_docx": {},
-            "files_pdf": {}
+            "files_docx": defaultdict(str),
+            "files_pdf": defaultdict(str)
         }
         await database.add_user(user)
         flag = create_user(nickname)

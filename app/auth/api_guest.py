@@ -3,6 +3,7 @@ from fastapi.responses import Response
 from app.dependencies.oauth2 import *
 from fastapi.security import OAuth2PasswordRequestForm
 from app.modules.user_directories import *
+from collections import defaultdict
 
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -42,26 +43,31 @@ async def sign_up(
             "nickname": username,
             "email": email,
             "key": hashed.hash_password(password),
-            "files_docx": {},
-            "files_pdf": {}
+            "files_docx": defaultdict(str),
+            "files_pdf": defaultdict(str)
         }
         await database.add_user(user)
         create_user(username)
         return {"msg": "You're registered"}
 
 @router.post("/access_token")
-async def sign_in(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+async def sign_in(
+        response: Response,
+        form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+):
     '''
     Get API user's access token
     :param username: insert username (example: user_first) (required)
     :param password: insert password (example: 12345) (required)
     :return:
     '''
+    response.status_code = 201
     users = await authenticate_user(form_data.username, form_data.password)
     if not users:
-        return {"access_token": "", "token_type": "Bearer", "response": False}
+        response.status_code = 401
+        return {"access_token": "", "token_type": "Bearer"}
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": form_data.username}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "Bearer", "response": True}
+    return {"access_token": access_token, "token_type": "Bearer"}

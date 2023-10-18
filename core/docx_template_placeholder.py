@@ -11,14 +11,16 @@ class DocxTemplatePlaceholder:
     def __init__(self,
                  username: str,
                  template: str,
+                 newfilename: str,
                  tags: Dict,
-):
+    ):
         self.error = 0
         try:
             self.template_document = Document(template)
             self.file_name = template.split('/')[-1]
             self.replace_tags = self.__prepare_tags(tags)
             self.username = username
+            self.new = newfilename
         except:
             self.error = ErrorType.missing_doc
 
@@ -27,7 +29,7 @@ class DocxTemplatePlaceholder:
             self.__process(self.template_document, self.replace_tags)
             path = FILE_FOLDER + self.username + "/" + self.file_name
             self.template_document.save(path)
-            return Convert2PDF(path, self.username).DocxToPdf()
+            return Convert2PDF(path, self.new, self.username).DocxToPdf()
         except:
             return ErrorType.missing_doc
 
@@ -37,7 +39,6 @@ class DocxTemplatePlaceholder:
             inline = p.runs
             flag = False
             for i in range(len(inline)):
-                # Todo кароч здесь по кусочкам условия надо ловить
                 left = inline[i].text.find("<<")
                 left_part = inline[i].text.find("<")
                 right = inline[i].text.find(">>")
