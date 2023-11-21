@@ -28,4 +28,4 @@ RUN chmod +x /app/start.sh
 WORKDIR /app
 
 # Запуск скрипта при старте контейнера
-CMD ["/start.sh"]
+CMD ["/app/start.sh"]
