@@ -22,12 +22,10 @@ RUN pip3 install -r req.txt
 
 ENV PYTHONPATH "/"
 
-# Копирование и установка прав на скрипт запуска
-COPY start_script.sh /start_script.sh
-RUN chmod +x /start_script.sh
+RUN chmod +x /app/start.sh
 
 # Установка рабочей директории
 WORKDIR /app
 
 # Запуск скрипта при старте контейнера
-CMD ["/start_script.sh"]
+CMD ["/start.sh"]
