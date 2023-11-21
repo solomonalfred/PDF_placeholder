@@ -20,9 +20,10 @@ class DocxTemplatePlaceholder:
         try:
             # print(os.path.isfile(template))
             # print(os.getcwd())
-            # with open("error.txt", "w") as file:
-            #     file.write(f"{os.getcwd()}\n")
-            self.template_document = Document(template[3:])
+            with open("error.txt", "w") as file:
+                file.write(f"{os.getcwd()}\n")
+                file.write(f"{os.getcwd()}\n")
+            self.template_document = Document(template)
             self.file_name = template.split('/')[-1]
             self.replace_tags = self.__prepare_tags(tags)
             self.username = username
@@ -37,7 +38,7 @@ class DocxTemplatePlaceholder:
         try:
             self.__process(self.template_document, self.replace_tags)
             path = FILE_FOLDER + self.username + "/" + self.file_name
-            self.template_document.save(path[3:])
+            self.template_document.save(path)
             return Convert2PDF(path, self.new, self.username).DocxToPdf()
         except:
             self.error = ErrorType.internal_error

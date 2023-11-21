@@ -16,7 +16,7 @@ database = DBManager("PDF_placeholder", "users")
 
 @app.get("/tags")
 async def tags(path: str):
-    tags = get_tags(path[3:])
+    tags = get_tags(path)
     return {"response": tags}
 
 

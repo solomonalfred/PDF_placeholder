@@ -17,12 +17,7 @@ class Convert2PDF:
         self.username = username
 
     def DocxToPdf(self):
-        directory = self.username
-        with open("error.txt", "w") as file:
-            file.write(f"{os.getcwd()}\n")
-            file.write(f"{os.path.isdir(directory)}\n")
-            file.write(f"{FILE_FOLDER + directory}\n")
-            file.write(f"{self.file}\n")
+        directory = FILE_FOLDER + self.username
         if os.path.isdir(directory) == False:
             return ErrorBlocker().process(ErrorType.missing_doc)
         subprocess.call(['/usr/bin/soffice',
@@ -31,8 +26,8 @@ class Convert2PDF:
                          'pdf',
                          '--outdir',
                          directory,
-                         self.file[3:]])
-        old = self.file.replace('.docx', '.pdf')[3:]
+                         self.file])
+        old = self.file.replace('.docx', '.pdf')
         new = directory + '/' + self.new + '.pdf'
         subprocess.call(['mv', old, new])
         if os.path.exists(new):

@@ -28,7 +28,5 @@ CMD ["python3", "api.py"]
 
 WORKDIR /
 
-CMD ["PORT=8001", "python3", "app/balancer/balance_core.py", "$"]
-CMD ["PORT=8002", "python3", "app/balancer/balance_core.py", "$"]
-CMD ["PORT=8003", "python3", "app/balancer/balance_core.py", "$"]
-CMD ["PORT=8004", "python3", "app/balancer/balance_core.py", "$"]
+COPY start_script.sh /start_script.sh
+RUN chmod +x /start_script.sh

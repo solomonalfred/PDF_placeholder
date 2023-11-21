@@ -73,7 +73,7 @@ async def process_data(
         async with session.get(f"{server}/process", params=filename, json=data) as resp:
             if resp.status == 200:
                 res = await resp.json()
-                return FileResponse(FILE_FOLDER + res["response"], filename=f"{newfilename}.pdf")
+                return FileResponse(res["response"], filename=f"{newfilename}.pdf")
             else:
                 res = await resp.json()
                 return {"status": res["response"]}
