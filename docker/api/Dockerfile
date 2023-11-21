@@ -24,7 +24,7 @@ RUN pip3 install -r req.txt
 ENV PYTHONPATH "/app"
 
 # Установка прав на скрипт запуска
-RUN chmod +x start.sh
+RUN chmod +x app/start.sh
 
 # Запуск скрипта при старте контейнера
-CMD ["./start.sh"]
+CMD ["./app/start.sh"]
