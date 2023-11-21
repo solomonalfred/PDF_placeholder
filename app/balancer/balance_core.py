@@ -14,6 +14,12 @@ app = FastAPI()
 
 database = DBManager("PDF_placeholder", "users")
 
+@app.get("/tags")
+async def tags(path: str):
+    tags = get_tags(path[3:])
+    return {"response": tags}
+
+
 @app.get("/process")
 async def process(response: Response,
                filename: str,

@@ -34,12 +34,19 @@ async def upload_docx(
     :return: dictionary of placeholder items in json
     '''
     file_path = save_file(current_user["nickname"], file)
-    tags = get_tags(file_path)
-    await database.update_field_by_nickname(current_user["nickname"],
-                                            "files_docx",
-                                            {file.filename: file_path},
-                                            transform_user)
-    return JSONResponse(content=dict_tags(tags))
+    async with aiohttp.ClientSession() as session:
+        server = next(server_iterator)
+        async with session.get(f"{server}/tags", params={'path': file_path}) as resp:
+            if resp.status == 200:
+                res = await resp.json()
+                await database.update_field_by_nickname(current_user["nickname"],
+                                                        "files_docx",
+                                                        {file.filename: file_path},
+                                                        transform_user)
+                return JSONResponse(content=dict_tags(res["response"]))
+            else:
+                return {"status": "error"}
+
 
 
 @router.post("/placeholder_process", response_class=FileResponse)
