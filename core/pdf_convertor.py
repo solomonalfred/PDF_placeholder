@@ -2,6 +2,7 @@ import subprocess
 import os
 from constants.variables import *
 from constants.msg import ErrorType
+from core.error_block import ErrorBlocker
 
 
 class Convert2PDF:
@@ -13,20 +14,27 @@ class Convert2PDF:
         # Todo под расширение для других форматов
         self.file = file_path
         self.new = newfilename
-        self.error = ErrorType.ok
         self.username = username
 
     def DocxToPdf(self):
-        directory = FILE_FOLDER + self.username
+        directory = self.username
+        with open("error.txt", "w") as file:
+            file.write(f"{os.getcwd()}\n")
+            file.write(f"{os.path.isdir(directory)}\n")
+            file.write(f"{FILE_FOLDER + directory}\n")
+            file.write(f"{self.file}\n")
+        if os.path.isdir(directory) == False:
+            return ErrorBlocker().process(ErrorType.missing_doc)
         subprocess.call(['/usr/bin/soffice',
                          '--headless',
                          '--convert-to',
                          'pdf',
                          '--outdir',
                          directory,
-                         self.file])
-        # delete_path = FILE_FOLDER + '/' + self.file.split('/')[-1]
-        # os.remove(delete_path)
-        subprocess.call(['mv', self.file.replace('.docx', '.pdf'), directory + '/' + self.new + '.pdf'])
-        path = directory + '/' + self.new + '.pdf'
-        return path
+                         self.file[3:]])
+        old = self.file.replace('.docx', '.pdf')[3:]
+        new = directory + '/' + self.new + '.pdf'
+        subprocess.call(['mv', old, new])
+        if os.path.exists(new):
+            return new
+        return ErrorBlocker().process(ErrorType.missing_doc)

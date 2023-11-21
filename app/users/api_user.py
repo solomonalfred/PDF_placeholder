@@ -5,9 +5,10 @@ from typing import Dict
 from app.dependencies.oauth2_api import *
 from app.modules.user_modules import *
 from app.config import *
-from core.core_object import Core
 from urllib.parse import urlencode
 import os
+import itertools
+import aiohttp
 
 router = APIRouter(
     prefix="/api_user",
@@ -17,6 +18,7 @@ router = APIRouter(
 )
 
 database = DBManager("PDF_placeholder", "users")
+server_iterator = itertools.cycle(servers)
 
 
 @router.post("/placeholder_items")
@@ -56,19 +58,19 @@ async def process_data(
     (example: headers = {"Authorization": "Bearer <your_access_token>"})(required)
     :return: file (.pdf)
     '''
-    username = current_user["nickname"]
-    file_path = await database.find_by_nickname(username)
-    file_path = file_path["files_docx"][filename]
-    if len(newfilename) == 0:
-        newfilename = filename
-    newfilename = newfilename.replace('.pdf', '').replace('.docx', '')
-    filler = Core(current_user["nickname"], file_path, newfilename, data).process()
-    file = Path(filler).name
-    await database.update_field_by_nickname(current_user["nickname"],
-                                            "files_pdf",
-                                            {file: filler},
-                                            transform_user)
-    return FileResponse(filler, filename=newfilename + '.pdf')
+    filename = {"filename": filename,
+                "newfilename": newfilename,
+                "username": current_user["nickname"]}
+    async with aiohttp.ClientSession() as session:
+        server = next(server_iterator)
+        async with session.get(f"{server}/process", params=filename, json=data) as resp:
+            if resp.status == 200:
+                res = await resp.json()
+                return FileResponse(FILE_FOLDER + res["response"], filename=f"{newfilename}.pdf")
+            else:
+                res = await resp.json()
+                return {"status": res["response"]}
+
 
 
 @router.post("/placeholder_link_process")
@@ -86,21 +88,24 @@ async def process_data(
     (example: headers = {"Authorization": "Bearer <your_access_token>"})(required)
     :return: link to file (.pdf)
     '''
-    username = current_user["nickname"]
-    file_path = await database.find_by_nickname(username)
-    file_path = file_path["files_docx"][filename]
-    if len(newfilename) == 0:
-        newfilename = filename
-    newfilename = newfilename.replace('.pdf', '').replace('.docx', '')
-    filler = Core(current_user["nickname"], file_path, newfilename, data).process()
-    file = Path(filler).name
-    await database.update_field_by_nickname(current_user["nickname"],
-                                            "files_pdf",
-                                            {file: filler},
-                                            transform_user)
-    url = f"{SERVER_URL}/link/file?{urlencode({'filename': file, 'username': current_user['nickname']})}"
-    result = {"url": url}
-    return JSONResponse(content=result)
+    filename = {"filename": filename,
+                "newfilename": newfilename,
+                "username": current_user["nickname"]}
+    async with aiohttp.ClientSession() as session:
+        server = next(server_iterator)
+        async with session.get(f"{server}/process", params=filename, json=data) as resp:
+            result = {}
+            if resp.status == 200:
+                res = await resp.json()
+                filler = res["response"]
+                url = f"{SERVER_URL}/link/file?" \
+                      f"{urlencode({'filename': Path(filler).name, 'username': current_user['nickname']})}"
+                result = {"url": url}
+            else:
+                res = await resp.json()
+                result = {"url": res["response"]}
+            return JSONResponse(content=result)
+
 
 @router.get("/template_list")
 async def templates_list(current_user: Annotated[dict, Depends(get_current_user_api)]):

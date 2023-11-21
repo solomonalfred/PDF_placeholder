@@ -10,7 +10,6 @@ from sypher import PasswordManager
 
 SECRET_KEY = "43d108a66940040ac38a714e192c57b8b3b1813e43efe39e022201a4dcf68bf2"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 oauth2_scheme_api = OAuth2PasswordBearer(tokenUrl="/api/access_token")
 database = DBManager("PDF_placeholder", "users")

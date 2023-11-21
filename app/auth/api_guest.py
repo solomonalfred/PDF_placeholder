@@ -3,16 +3,16 @@ from fastapi.responses import Response
 from app.dependencies.oauth2 import *
 from fastapi.security import OAuth2PasswordRequestForm
 from app.modules.user_directories import *
-from collections import defaultdict
 
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 31 * 12
 
 router = APIRouter(
     prefix="/api",
     tags=["api"]
 )
 database = DBManager("PDF_placeholder", "users")
+
 
 @router.post("/signup")
 async def sign_up(
@@ -43,12 +43,13 @@ async def sign_up(
             "nickname": username,
             "email": email,
             "key": hashed.hash_password(password),
-            "files_docx": defaultdict(str),
-            "files_pdf": defaultdict(str)
+            "files_docx": dict(),
+            "files_pdf": dict()
         }
         await database.add_user(user)
         create_user(username)
         return {"msg": "You're registered"}
+
 
 @router.post("/access_token")
 async def sign_in(

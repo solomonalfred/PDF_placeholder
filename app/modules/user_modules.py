@@ -1,12 +1,10 @@
 import shutil
 import os
-import uuid
 from constants.variables import *
 from fastapi import UploadFile, File
 from docx import Document
 import re
-import asyncio
-from collections import defaultdict
+import PyPDF2
 
 
 def save_file(username: str, input_file_data: UploadFile = File(...)):
@@ -100,3 +98,10 @@ def delete_transform(old: dict, new: dict):
         return old
     del old[new['key']]
     return old
+
+def count_pages(path: str):
+    pdf_file = open(path, 'rb')
+    pdf_reader = PyPDF2.PdfReader(pdf_file)
+    num_pages = len(pdf_reader.pages)
+    pdf_file.close()
+    return num_pages

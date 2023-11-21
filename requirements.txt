@@ -7,3 +7,4 @@ python-docx
 python-jose
 passlib[bcrypt]
 motor
+PyPDF2

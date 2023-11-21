@@ -4,6 +4,8 @@ from typing import Dict
 from constants.variables import *
 from constants.msg import ErrorType
 from core.pdf_convertor import Convert2PDF
+from core.error_block import ErrorBlocker
+import os
 
 
 class DocxTemplatePlaceholder:
@@ -14,24 +16,32 @@ class DocxTemplatePlaceholder:
                  newfilename: str,
                  tags: Dict,
     ):
-        self.error = 0
+        self.error = ErrorType.ok
         try:
-            self.template_document = Document(template)
+            # print(os.path.isfile(template))
+            # print(os.getcwd())
+            # with open("error.txt", "w") as file:
+            #     file.write(f"{os.getcwd()}\n")
+            self.template_document = Document(template[3:])
             self.file_name = template.split('/')[-1]
             self.replace_tags = self.__prepare_tags(tags)
             self.username = username
             self.new = newfilename
-        except:
-            self.error = ErrorType.missing_doc
+        except Exception as e:
+            print("Произошла ошибка:", e)
+            self.error = ErrorType.incorrect_doc
 
     def process(self):
+        if self.error:
+            return ErrorBlocker().process(self.error)
         try:
             self.__process(self.template_document, self.replace_tags)
             path = FILE_FOLDER + self.username + "/" + self.file_name
-            self.template_document.save(path)
+            self.template_document.save(path[3:])
             return Convert2PDF(path, self.new, self.username).DocxToPdf()
         except:
-            return ErrorType.missing_doc
+            self.error = ErrorType.internal_error
+            return ErrorBlocker().process(self.error)
 
     def __process(self, doc, tags):
         reg = ""
