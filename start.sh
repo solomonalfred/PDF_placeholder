@@ -10,3 +10,5 @@ cd app
 # PORT=8004 python3 balancer/balance_core.py & echo $! >> ../balancer_pids.txt
 
 python3 api.py & echo $! >> ../balancer_pids.txt
+
+while true; do sleep 1000; done
