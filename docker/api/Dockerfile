@@ -22,6 +22,7 @@ RUN pip3 install -r req.txt
 
 ENV PYTHONPATH "/"
 
-WORKDIR /app
+COPY start.sh /start.sh
+RUN chmod +x start.sh
 
-CMD ["python3", "api.py"]
+CMD ["./start.sh"]
