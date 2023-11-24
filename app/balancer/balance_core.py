@@ -4,7 +4,6 @@ from typing import Dict
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-
 from core.core_object import Core
 from database.db import DBManager
 from app.modules.user_modules import *
@@ -16,6 +15,12 @@ database = DBManager("PDF_placeholder", "users")
 
 @app.get("/tags")
 async def tags(path: str):
+    # dirname = os.path.dirname(__file__)
+    #     file = os.path.join(dirname, "../../tags.txt")
+    #     with open(file, "w") as file:
+    #         file.write(f"{os.getcwd()}\n")
+    #         file.write(f"{path}\n")
+
     tags = get_tags(path)
     return {"response": tags}
 

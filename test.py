@@ -52,6 +52,7 @@ headers = {"Authorization": f"{token['token_type']} {token['access_token']}"}
 files = {"file": open("test_files/typical.docx", "rb")}
 res = requests.post(url, files=files, headers=headers)
 data = res.json()
+print(data)
 
 filename = {"filename": "typical.docx",
             "newfilename": "shlyapa"}
@@ -64,6 +65,17 @@ res = requests.post(url, params=filename, json=data, headers=headers)
 end_time = time.time()
 execution_time = end_time - start_time
 print("заполнение и конвертация (возврат через ссылку)")
+print(execution_time)
+print(res.json())
+
+filename = {"filename": "Bible_God_mode.docx",
+            "newfilename": "shlyapa_1"}
+
+url = f"{url_path}/api_user/placeholder_link_process"
+start_time = time.time()
+res = requests.post(url, params=filename, json=data, headers=headers)
+end_time = time.time()
+execution_time = end_time - start_time
 print(execution_time)
 print(res.json())
 

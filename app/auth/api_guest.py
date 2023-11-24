@@ -1,7 +1,10 @@
 from fastapi import APIRouter, Form
 from fastapi.responses import Response
-from app.dependencies.oauth2 import *
 from fastapi.security import OAuth2PasswordRequestForm
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+from app.dependencies.oauth2 import *
 from app.modules.user_directories import *
 
 

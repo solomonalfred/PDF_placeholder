@@ -22,7 +22,6 @@ class DocxTemplatePlaceholder:
             # print(os.getcwd())
             with open("error.txt", "w") as file:
                 file.write(f"{os.getcwd()}\n")
-                file.write(f"{os.getcwd()}\n")
             self.template_document = Document(template)
             self.file_name = template.split('/')[-1]
             self.replace_tags = self.__prepare_tags(tags)

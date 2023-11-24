@@ -77,8 +77,19 @@ def get_tags(file_path: str):
                 for cell in row.cells:
                     process(cell)
 
-    doc = Document(file_path)
-    process(doc)
+    dirname = os.path.dirname(__file__)
+    file = os.path.join(dirname, "../../tags.txt")
+    with open(file, "w") as file:
+        #         file.write(f"{os.getcwd()}\n")
+        #         file.write(f"{file_path}\n")
+        #         file.write(f"{os.path.isfile(file_path)}\n")
+        try:
+            doc = Document(file_path)
+            process(doc)
+            file.write("Tags: correct document\n")
+        except:
+            file.write("Tags error: incorrect document\n")
+
     return list(set(tags))
 
 def dict_tags(tags):

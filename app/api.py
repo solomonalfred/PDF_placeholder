@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from uvicorn import Config, Server
 import asyncio
 from fastapi import FastAPI, Request
@@ -9,6 +12,7 @@ from auth import api_guest
 from users import user
 from users import api_user
 from links import link
+
 
 
 app = FastAPI(
@@ -24,6 +28,7 @@ app.include_router(api_guest.router)
 app.include_router(user.router)
 app.include_router(api_user.router)
 app.include_router(link.router)
+
 
 @app.get("/", response_class=HTMLResponse)
 async def main_page(request: Request):
