@@ -16,9 +16,4 @@ class Core:
         self.new = newfilename
 
     def process(self):
-        with open("error.txt", "w") as file:
-            file.write(f"{self.username}\n")
-            file.write(f"{self.template}\n")
-            file.write(f"{self.new}\n")
-            file.write(f"{self.tags}\n")
         return DocxTemplatePlaceholder(self.username, self.template, self.new, self.tags).process()

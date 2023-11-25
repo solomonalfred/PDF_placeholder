@@ -16,7 +16,7 @@ def save_file(username: str, input_file_data: UploadFile = File(...)):
             shutil.copyfileobj(input_file_data.file, buffer)
         return path
     except:
-        return None
+        return ''
 
 def get_tags(file_path: str):
     tags = []

@@ -27,11 +27,11 @@ async def upload_docx(
         file: UploadFile = File(...)
 ):
     '''
-    Get API user file's placeholder items
-    :param current_user: include received access token in headers in request
-    (example: headers = {"Authorization": "<Bearer your_access_token>"})(required)
-    :param file: template file (necessarily .docs)(required)
-    :return: dictionary of placeholder items in json
+    Get API user file's placeholder items \n
+    :param current_user: include received access token in headers in request \n
+    (example: headers = {"Authorization": "<Bearer your_access_token>"})(required) \n
+    :param file: template file (necessarily .docs)(required) \n
+    :return: dictionary of placeholder items in json \n
     '''
     file_path = save_file(current_user["nickname"], file)
     async with aiohttp.ClientSession() as session:
@@ -48,7 +48,6 @@ async def upload_docx(
                 return {"status": "error"}
 
 
-
 @router.post("/placeholder_process", response_class=FileResponse)
 async def process_data(
         filename: str,
@@ -57,13 +56,13 @@ async def process_data(
         current_user: Annotated[dict, Depends(get_current_user_api)]
 ):
     '''
-    Process API user file with filled placeholder items
-    :param filename: transformed file's name
-    :param newfilename: new name of output file
-    :param data: filled dictionary of placeholder items in json
-    :param current_user: include received access token in headers in request
-    (example: headers = {"Authorization": "Bearer <your_access_token>"})(required)
-    :return: file (.pdf)
+    Process API user file with filled placeholder items \n
+    :param filename: transformed file's name \n
+    :param newfilename: new name of output file \n
+    :param data: filled dictionary of placeholder items in json \n
+    :param current_user: include received access token in headers in request \n
+    (example: headers = {"Authorization": "Bearer <your_access_token>"})(required) \n
+    :return: file (.pdf) \n
     '''
     filename = {"filename": filename,
                 "newfilename": newfilename,
@@ -88,12 +87,12 @@ async def process_data(
         current_user: Annotated[dict, Depends(get_current_user_api)]
 ):
     '''
-    Process API user file with filled placeholder items
-    :param filename: transformed file's name
-    :param data: filled dictionary of placeholder items in json
-    :param current_user: include received access token in headers in request
-    (example: headers = {"Authorization": "Bearer <your_access_token>"})(required)
-    :return: link to file (.pdf)
+    Process API user file with filled placeholder items \n
+    :param filename: transformed file's name \n
+    :param data: filled dictionary of placeholder items in json \n
+    :param current_user: include received access token in headers in request \n
+    (example: headers = {"Authorization": "Bearer <your_access_token>"})(required) \n
+    :return: link to file (.pdf) \n
     '''
     filename = {"filename": filename,
                 "newfilename": newfilename,
@@ -117,27 +116,28 @@ async def process_data(
 @router.get("/template_list")
 async def templates_list(current_user: Annotated[dict, Depends(get_current_user_api)]):
     username = current_user["nickname"]
-    file_path = await database.find_by_nickname(username)
-    templates = list(file_path["files_docx"].keys())
-    return JSONResponse(content={"templates": templates})
+    user = {"username": username}
+    async with aiohttp.ClientSession() as session:
+        server = next(server_iterator)
+        async with session.get(f"{server}/list_templates", params=user) as resp:
+            if resp.status == 200:
+                res = await resp.json()
+                return JSONResponse(content=res)
+            else:
+                return {"status": "Server error"}
+
 
 @router.delete("/delete_template")
 async def delete_template(
-    response: Response,
     templatename: str,
     current_user: Annotated[dict, Depends(get_current_user_api)]
 ):
     username = current_user["nickname"]
-    file_path = await database.find_by_nickname(username)
-    delete_path_ = file_path["files_docx"]
-    response.status_code = 404
-    if delete_path_.get(templatename) is not None:
-        delete_path = file_path["files_docx"][templatename]
-        os.remove(delete_path)
-        await database.update_field_by_nickname(current_user["nickname"],
-                                                "files_docx",
-                                                {'key': templatename},
-                                                delete_transform)
-        response.status_code = 201
-        return JSONResponse(content={"msg": 'Template deleted'})
-    return JSONResponse(content={"msg": "There's no this template"})
+    del_list = {"username": username,
+                "templatename": templatename}
+    async with aiohttp.ClientSession() as session:
+        server = next(server_iterator)
+        async with session.delete(f"{server}/delete_template", params=del_list) as resp:
+            res = await resp.json()
+            return JSONResponse(content=res)
+

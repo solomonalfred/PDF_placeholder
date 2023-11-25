@@ -26,12 +26,12 @@ async def sign_up(
         password: str = Form(...)
 ):
     '''
-    API user's registration
-    :param name: insert name (example: user1) (required)
-    :param username: insert username (example: user_first) (required)
-    :param email: insert email (example: example@mail.ru) (required)
-    :param password: insert password (example: 12345) (required)
-    :return: response registration (example: {"msg": "You're registered"})
+    API user's registration \n
+    :param name: insert name (example: user1) (required) \n
+    :param username: insert username (example: user_first) (required) \n
+    :param email: insert email (example: example@mail.ru) (required) \n
+    :param password: insert password (example: 12345) (required) \n
+    :return: response registration (example: {"msg": "You're registered"}) \n
     '''
     response.status_code = 201
     if await database.find_by_nickname(username):
@@ -60,10 +60,10 @@ async def sign_in(
         form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ):
     '''
-    Get API user's access token
-    :param username: insert username (example: user_first) (required)
-    :param password: insert password (example: 12345) (required)
-    :return:
+    Get API user's access token \n
+    :param username: insert username (example: user_first) (required) \n
+    :param password: insert password (example: 12345) (required) \n
+    :return: \n
     '''
     response.status_code = 201
     users = await authenticate_user(form_data.username, form_data.password)

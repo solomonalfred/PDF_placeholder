@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Response
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse, Response
 from pathlib import Path
 from typing import Dict
 import sys
@@ -10,17 +11,45 @@ from app.modules.user_modules import *
 
 
 app = FastAPI()
-
 database = DBManager("PDF_placeholder", "users")
+
+
+
+
+# user
+@app.delete("/delete_template")
+async def delete_template(
+        response: Response,
+        username: str,
+        templatename: str
+):
+    file_path = await database.find_by_nickname(username)
+    delete_path_ = file_path["files_docx"]
+    response.status_code = 404
+    if delete_path_.get(templatename) is not None:
+        delete_path = file_path["files_docx"][templatename]
+        os.remove(delete_path)
+        await database.update_field_by_nickname(username,
+                                                "files_docx",
+                                                {'key': templatename},
+                                                delete_transform)
+        response.status_code = 201
+        return JSONResponse(content={"msg": 'Template deleted'})
+    return JSONResponse(content={"msg": "There's no this template"})
+
+
+@app.get("/list_templates")
+async def list_templates(username: str):
+    try:
+        file_path = await database.find_by_nickname(username)
+        templates = list(file_path["files_docx"].keys())
+        return {"templates": templates}
+    except:
+        return {"templates": []}
+
 
 @app.get("/tags")
 async def tags(path: str):
-    # dirname = os.path.dirname(__file__)
-    #     file = os.path.join(dirname, "../../tags.txt")
-    #     with open(file, "w") as file:
-    #         file.write(f"{os.getcwd()}\n")
-    #         file.write(f"{path}\n")
-
     tags = get_tags(path)
     return {"response": tags}
 
