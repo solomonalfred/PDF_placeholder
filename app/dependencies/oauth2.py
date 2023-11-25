@@ -4,8 +4,11 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from database.db import DBManager
-from sypher import PasswordManager
+from app.dependencies.sypher import PasswordManager
 
 
 SECRET_KEY = "43d108a66940040ac38a714e192c57b8b3b1813e43efe39e022201a4dcf68bf2"

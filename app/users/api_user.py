@@ -6,7 +6,6 @@ from app.dependencies.oauth2_api import *
 from app.modules.user_modules import *
 from app.config import *
 from urllib.parse import urlencode
-import os
 import itertools
 import aiohttp
 
