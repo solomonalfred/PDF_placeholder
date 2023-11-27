@@ -10,6 +10,7 @@ from app.dependencies.oauth2 import *
 from core.core_object import Core
 from app.modules.user_modules import *
 from app.modules.user_directories import *
+from database.SQL_requests import *
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 31 * 12
 
@@ -17,7 +18,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 31 * 12
 app = FastAPI()
 database = DBManager("PDF_placeholder", "users")
 
-# auth
+# Todo: auth
+
 
 @app.post("/signup")
 async def sign_up(
@@ -28,23 +30,20 @@ async def sign_up(
         password: str = Form(...)
 ):
     response.status_code = 201
-    if await database.find_by_nickname(username):
-        response.status_code = 208
-        return {"msg": "You're already registered"}
-    elif await database.find_by({"email": email}):
-        response.status_code = 401
-        return {"msg": "This email is used by another user"}
-    else:
-        user = {
-            "name": name,
-            "nickname": username,
-            "email": email,
-            "key": hashed.hash_password(password),
-            "files_docx": dict(),
-            "files_pdf": dict()
-        }
-        await database.add_user(user)
-        create_user(username)
+    async with get_async_session() as session:
+        user_data = await find_user_by_nickname(session, username)
+        mail_find = await find_user_by_email(session, email)
+        if user_data:
+            response.status_code = 208
+        elif mail_find:
+            response.status_code = 401
+        else:
+            user_id = await add_user(name,
+                                     username,
+                                     email,
+                                     hashed.hash_password(password),
+                                     session)
+            create_user(username)
         return {"msg": "You're registered"}
 
 
@@ -64,34 +63,37 @@ async def sign_in(
     )
     return {"access_token": access_token, "token_type": "Bearer"}
 
-# user
+# Todo: user
+
+
 @app.delete("/delete_template")
 async def delete_template(
         response: Response,
         username: str,
         templatename: str
 ):
-    file_path = await database.find_by_nickname(username)
-    delete_path_ = file_path["files_docx"]
-    response.status_code = 404
-    if delete_path_.get(templatename) is not None:
-        delete_path = file_path["files_docx"][templatename]
-        os.remove(delete_path)
-        await database.update_field_by_nickname(username,
-                                                "files_docx",
-                                                {'key': templatename},
-                                                delete_transform)
-        response.status_code = 201
-        return JSONResponse(content={"msg": 'Template deleted'})
-    return JSONResponse(content={"msg": "There's no this template"})
+    async with get_async_session() as session:
+        user_data = await find_user_by_nickname(session, username)
+        delete_path_ = await find_docx_file(session, user_data["id"], templatename)
+        response.status_code = 404
+        if delete_path_ is not None:
+            delete_path = delete_path_["path"]
+            os.remove(delete_path)
+            result = await delete_docx_file(session,
+                                            user_data["id"],
+                                            templatename)
+            response.status_code = 201
+            return JSONResponse(content={"msg": 'Template deleted'})
+        return JSONResponse(content={"msg": "There's no this template"})
 
 
 @app.get("/list_templates")
 async def list_templates(username: str):
     try:
-        file_path = await database.find_by_nickname(username)
-        templates = list(file_path["files_docx"].keys())
-        return {"templates": templates}
+        async with get_async_session() as session:
+            user_data = await find_user_by_nickname(session, username)
+            templates = await find_docx_files(session, user_data["id"])
+            return {"templates": templates}
     except:
         return {"templates": []}
 
@@ -108,21 +110,32 @@ async def process(response: Response,
                newfilename: str,
                username: str,
                data: Dict[str, str]):
-    file_path = await database.find_by_nickname(username)
-    file_path = file_path["files_docx"][filename]
-    if len(newfilename) == 0:
-        newfilename = filename
-    newfilename = newfilename.replace('.pdf', '').replace('.docx', '')
-    filler = Core(username, file_path, newfilename, data).process()
-    if filler.find(newfilename) == -1:
-        response.status_code = 401
-    else:
-        file = Path(filler).name
-        await database.update_field_by_nickname(username,
-                                            "files_pdf",
-                                            {file: filler},
-                                            transform_user)
-    return {"response": filler}
+    async with get_async_session() as session:
+        user = await find_user_by_nickname(session, username)
+        file_path = await find_docx_file(session, user["id"], filename)
+        file_path = file_path["path"]
+        if len(newfilename) == 0:
+            newfilename = filename
+        newfilename = newfilename.replace('.pdf', '').replace('.docx', '')
+        filler = Core(username, file_path, newfilename, data).process()
+        result = True
+        if filler.find(newfilename) == -1:
+            response.status_code = 401
+        else:
+            file = Path(filler).name
+            file_size = os.path.getsize(filler)
+            count = count_pages(filler)
+            result = await add_or_update_pdf_file(session,
+                                                  file,
+                                                  file_size,
+                                                  filler,
+                                                  user["id"],
+                                                  count,
+                                                  filename)
+        if result:
+            return {"response": filler}
+        else:
+            return {"response": "Insufficient funds"}
 
 
 if __name__ == "__main__":

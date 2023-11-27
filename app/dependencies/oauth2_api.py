@@ -7,12 +7,11 @@ from jose import JWTError, jwt
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-from database.db import DBManager
+from database.mongo_manager import DBManager
 from app.dependencies.sypher import PasswordManager
+from database.SQL_requests import *
+from configurations import SECRET_KEY, ALGORITHM
 
-
-SECRET_KEY = "43d108a66940040ac38a714e192c57b8b3b1813e43efe39e022201a4dcf68bf2"
-ALGORITHM = "HS256"
 
 oauth2_scheme_api = OAuth2PasswordBearer(tokenUrl="/api/access_token")
 database = DBManager("PDF_placeholder", "users")
@@ -20,12 +19,13 @@ hashed = PasswordManager()
 
 
 async def authenticate_user(username: str, password: str):
-    user = await database.find_by_nickname(username)
-    if not user:
-        return False
-    if not hashed.verify_password(password, user["key"]):
-        return False
-    return user
+    async with get_async_session() as session:
+        user = await find_user_by_nickname(session, username)
+        if not user:
+            return False
+        if not hashed.verify_password(password, user["pass"]):
+            return False
+        return user
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
@@ -52,7 +52,8 @@ async def get_current_user_api(token: Annotated[str, Depends(oauth2_scheme_api)]
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-    user = await database.find_by_nickname(username)
-    if user is None:
-        raise credentials_exception
-    return user
+    async with get_async_session() as session:
+        user = await find_user_by_nickname(session, username)
+        if user is None:
+            raise credentials_exception
+        return user

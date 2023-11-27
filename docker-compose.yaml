@@ -1,6 +1,18 @@
 version: "3"
 
 services:
+  postgres:
+    container_name: postgres
+    image: postgres
+    environment:
+      POSTGRES_USER: tfsp
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: pdf_placeholder
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   mongodb:
     container_name: mongodb
     image: mongo
@@ -20,4 +32,12 @@ services:
     ports:
       - "7777:7777"
     restart: always
+    environment:
+      DB_HOST: postgres
+      DB_NAME: pdf_placeholder
+      DB_USER: tfsp
+      DB_PASS: 12345
+      DB_PORT: "5432"
 
+volumes:
+  postgres_data:

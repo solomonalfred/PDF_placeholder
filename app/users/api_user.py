@@ -33,15 +33,19 @@ async def upload_docx(
     :return: dictionary of placeholder items in json \n
     '''
     file_path = save_file(current_user["nickname"], file)
+    file_size = os.path.getsize(file_path)
+    user_id = current_user["id"]
     async with aiohttp.ClientSession() as session:
         server = next(server_iterator)
         async with session.get(f"{server}/tags", params={'path': file_path}) as resp:
             if resp.status == 200:
                 res = await resp.json()
-                await database.update_field_by_nickname(current_user["nickname"],
-                                                        "files_docx",
-                                                        {file.filename: file_path},
-                                                        transform_user)
+                async with get_async_session() as session:
+                    new_file_id = await add_or_update_docx_file(session,
+                                                                file.filename,
+                                                                file_path,
+                                                                file_size,
+                                                                user_id)
                 return JSONResponse(content=dict_tags(res["response"]))
             else:
                 return {"status": "error"}
@@ -71,6 +75,8 @@ async def process_data(
         async with session.get(f"{server}/process", params=filename, json=data) as resp:
             if resp.status == 200:
                 res = await resp.json()
+                if res["response"] == "Insufficient funds":
+                    return {"status": res["response"]}
                 return FileResponse(res["response"], filename=f"{newfilename}.pdf")
             else:
                 res = await resp.json()
@@ -102,6 +108,8 @@ async def process_data(
             result = {}
             if resp.status == 200:
                 res = await resp.json()
+                if res["response"] == "Insufficient funds":
+                    return {"url": res["response"]}
                 filler = res["response"]
                 url = f"{SERVER_URL}/link/file?" \
                       f"{urlencode({'filename': Path(filler).name, 'username': current_user['nickname']})}"

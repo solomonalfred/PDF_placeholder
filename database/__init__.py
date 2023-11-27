@@ -1,1 +1,1 @@
-from .db import DBManager
+from .mongo_manager import DBManager

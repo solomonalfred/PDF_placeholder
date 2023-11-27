@@ -9,3 +9,7 @@ passlib[bcrypt]
 motor
 PyPDF2
 aiohttp
+sqlalchemy
+alembic
+asyncpg
+python-dotenv

@@ -25,4 +25,7 @@ ENV PYTHONPATH "/"
 COPY start.sh /start.sh
 RUN chmod +x start.sh
 
+COPY alembic.ini /alembic.ini
+COPY migrations /migrations
+
 CMD ["./start.sh"]
