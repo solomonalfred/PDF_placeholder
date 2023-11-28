@@ -33,7 +33,7 @@ services:
       - "7777:7777"
     restart: always
     environment:
-      DB_HOST: postgres
+      DB_HOST: localhost
       DB_NAME: pdf_placeholder
       DB_USER: tfsp
       DB_PASS: 12345
