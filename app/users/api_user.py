@@ -77,6 +77,8 @@ async def process_data(
                 res = await resp.json()
                 if res["response"] == "Insufficient funds":
                     return {"status": res["response"]}
+                if res["response"] == "Template deleted":
+                    return {"status": res["response"]}
                 return FileResponse(res["response"], filename=f"{newfilename}.pdf")
             else:
                 res = await resp.json()
@@ -148,3 +150,17 @@ async def delete_template(
             res = await resp.json()
             return JSONResponse(content=res)
 
+@router.post("/replenishment_balance")
+async def debit(
+        amount: int,
+        current_user: Annotated[dict, Depends(get_current_user_api)],
+        unlimited: int = 0,
+):
+    async with aiohttp.ClientSession() as session:
+        data = {"username": current_user["nickname"],
+                "amount": amount,
+                "unlimited": unlimited}
+        server = next(server_iterator)
+        async with session.post(f"{server}/replenishment_balance", params=data) as resp:
+            res = await resp.json()
+            return JSONResponse(content=res)

@@ -1,3 +1,4 @@
+import aiohttp
 from fastapi import FastAPI, Form
 from fastapi.responses import JSONResponse, Response
 from fastapi.security import OAuth2PasswordRequestForm
@@ -5,6 +6,8 @@ from pathlib import Path
 from typing import Dict
 import sys
 import os
+from decimal import Decimal
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from app.dependencies.oauth2 import *
 from core.core_object import Core
@@ -14,9 +17,9 @@ from database.SQL_requests import *
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 31 * 12
 
-
 app = FastAPI()
 database = DBManager("PDF_placeholder", "users")
+
 
 # Todo: auth
 
@@ -63,6 +66,7 @@ async def sign_in(
     )
     return {"access_token": access_token, "token_type": "Bearer"}
 
+
 # Todo: user
 
 
@@ -76,7 +80,7 @@ async def delete_template(
         user_data = await find_user_by_nickname(session, username)
         delete_path_ = await find_docx_file(session, user_data["id"], templatename)
         response.status_code = 404
-        if delete_path_ is not None:
+        if delete_path_ is not None and delete_path_["deleted"] != True:
             delete_path = delete_path_["path"]
             os.remove(delete_path)
             result = await delete_docx_file(session,
@@ -106,13 +110,17 @@ async def tags(path: str):
 
 @app.get("/process")
 async def process(response: Response,
-               filename: str,
-               newfilename: str,
-               username: str,
-               data: Dict[str, str]):
+                  filename: str,
+                  newfilename: str,
+                  username: str,
+                  data: Dict[str, str]):
     async with get_async_session() as session:
         user = await find_user_by_nickname(session, username)
         file_path = await find_docx_file(session, user["id"], filename)
+        if file_path is None:
+            return {"response": "Template deleted"}
+        if file_path["deleted"]:
+            return {"response": "Template deleted"}
         file_path = file_path["path"]
         if len(newfilename) == 0:
             newfilename = filename
@@ -137,9 +145,22 @@ async def process(response: Response,
         else:
             return {"response": "Insufficient funds"}
 
+@app.post("/replenishment_balance")
+async def debit(
+        username: str,
+        amount: int,
+        unlimited: int = 0
+):
+    async with get_async_session() as session:
+        user = await find_user_by_nickname(session, username)
+        deb = await transaction_debit(session, user["id"], Decimal(amount), bool(unlimited))
+    if unlimited:
+        return {"balance": deb, "rate": "Unlimited"}
+    return {"balance": deb, "rate": "Common"}
 
 if __name__ == "__main__":
     import os
     import uvicorn
+
     port = os.getenv("PORT")
     uvicorn.run(app, host="0.0.0.0", port=int(port))

@@ -12,7 +12,7 @@ from auth import api_guest
 from users import user
 from users import api_user
 from links import link
-
+from app.dependencies.sypher import PasswordManager
 
 
 app = FastAPI(
@@ -22,6 +22,7 @@ app = FastAPI(
 )
 
 templates = Jinja2Templates(directory="../templates")
+hashed = PasswordManager()
 
 app.include_router(guest.router)
 app.include_router(api_guest.router)
