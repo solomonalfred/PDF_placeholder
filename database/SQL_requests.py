@@ -5,12 +5,19 @@ import asyncio
 from decimal import Decimal
 
 
-async def add_user(name: str, nickname: str, email: str, password: str, session: AsyncSession) -> int:
+async def add_user(name: str,
+                   nickname: str,
+                   email: str,
+                   password: str,
+                   role: str,
+                   session: AsyncSession) -> int:
     stmt = insert(user).values(
         name=name,
         nickname=nickname,
         email=email,
-        password=password
+        password=password,
+        role=role,
+        unlimited=False
     ).returning(user.c.id)
 
     result = await session.execute(stmt)
@@ -18,6 +25,34 @@ async def add_user(name: str, nickname: str, email: str, password: str, session:
     await session.commit()
 
     return user_id
+
+
+async def add_user_if_not_exists(session: AsyncSession,
+                                 name: str,
+                                 nickname: str,
+                                 email: str,
+                                 password: str,
+                                 role: str,
+                                 balance: int = 5000,
+                                 unlimited: bool = True):
+    stmt = select(user).where(user.c.nickname == nickname, user.c.email == email)
+    result = await session.execute(stmt)
+    user_exists = result.scalar_one_or_none() is not None
+
+    if not user_exists:
+        stmt = insert(user).values(
+            name=name,
+            nickname=nickname,
+            email=email,
+            password=password,
+            balance=balance,
+            role=role,
+            unlimited=unlimited,
+            registered_at=datetime.utcnow()
+        )
+        await session.execute(stmt)
+        await session.commit()
+
 
 async def find_user_by_nickname(session: AsyncSession, nickname: str):
     stmt = select(user).where(user.c.nickname == nickname)
@@ -32,7 +67,9 @@ async def find_user_by_nickname(session: AsyncSession, nickname: str):
             "nickname": user_record.nickname,
             "email": user_record.email,
             "balance": int(user_record.balance),
-            "pass": user_record.password,
+            "password": user_record.password,
+            "role": user_record.role,
+            "unlimited": user_record.unlimited,
             "registered_at": user_record.registered_at
         }
     else:
@@ -50,7 +87,9 @@ async def find_user_by_email(session: AsyncSession, email: str):
             "nickname": user_record.nickname,
             "email": user_record.email,
             "balance": int(user_record.balance),
-            "pass": user_record.password,
+            "password": user_record.password,
+            "role": user_record.role,
+            "unlimited": user_record.unlimited,
             "registered_at": user_record.registered_at
         }
     else:
@@ -63,15 +102,13 @@ async def add_or_update_docx_file(session: AsyncSession, name: str, path: str, s
     existing_file = result.one_or_none()
 
     if existing_file:
-        # Обновление существующей записи
         stmt = (
             update(docx_file)
             .where(docx_file.c.id == existing_file.id)
-            .values(path=path, sizeBytes=sizeBytes, deleted=False)
+            .values(path=path, sizeBytes=sizeBytes, deleted=False, created_at=datetime.utcnow())
             .returning(docx_file.c.id)
         )
     else:
-        # Добавление новой записи
         stmt = (
             insert(docx_file)
             .values(name=name, path=path, sizeBytes=sizeBytes, user_id=user_id, created_at=datetime.utcnow())
@@ -103,6 +140,17 @@ async def find_docx_file(session: AsyncSession, user_id: int, name: str) -> dict
     else:
         return None
 
+
+async def find_docx_file_by_id(session: AsyncSession, user_id: int, name_id: str) -> str:
+    stmt = select(docx_file).where(docx_file.c.user_id == user_id, docx_file.c.id == name_id)
+    result = await session.execute(stmt)
+    file_record = result.one_or_none()
+
+    if file_record:
+        return file_record.name
+    else:
+        return None
+
 async def find_docx_files(session: AsyncSession, user_id: int) -> list:
     stmt = select(docx_file.c.name)\
         .where(docx_file.c.user_id == user_id,
@@ -113,14 +161,12 @@ async def find_docx_files(session: AsyncSession, user_id: int) -> list:
     return file_records
 
 async def delete_docx_file(session: AsyncSession, user_id: int, name: str) -> bool:
-    # Находим ID docx файла
     file_stmt = select(docx_file.c.id)\
-        .where(docx_file.c.user_id == user_id, docx_file.c.name == name, docx_file.c.deleted == True)
+        .where(docx_file.c.user_id == user_id, docx_file.c.name == name, docx_file.c.deleted == False)
     file_result = await session.execute(file_stmt)
     file_record = file_result.scalar_one_or_none()
 
     if file_record:
-        # Установка пометки deleted в True для файла docx_file
         update_stmt = update(docx_file).where(docx_file.c.id == file_record).values(deleted=True)
         await session.execute(update_stmt)
 
@@ -131,6 +177,7 @@ async def delete_docx_file(session: AsyncSession, user_id: int, name: str) -> bo
 
 async def transaction_credit(session: AsyncSession,
                              user_id: int,
+                             pdf_file: str,
                              docx_file_id: int,
                              credit_type: str,
                              amount: float,
@@ -169,6 +216,7 @@ async def transaction_credit(session: AsyncSession,
         balance=new_balance,
         page_processed=page_processed,
         created_at=datetime.utcnow(),
+        file=pdf_file,
         template=docx_file_id,
         unlimited=current_user_balance.unlimited,
         user_id=user_id
@@ -193,7 +241,7 @@ async def transaction_debit(session: AsyncSession,
     last_transaction = last_transaction_result.one_or_none()
 
     # Находим текущий баланс пользователя
-    user_stmt = select(user.c.balance).where(user.c.id == user_id)
+    user_stmt = select(user.c.balance, user.c.unlimited).where(user.c.id == user_id)
     user_result = await session.execute(user_stmt)
     current_user_balance = user_result.one_or_none()
 
@@ -202,7 +250,7 @@ async def transaction_debit(session: AsyncSession,
     else:
         new_balance = current_user_balance.balance + amount
 
-    if unlimited:
+    if unlimited or current_user_balance.unlimited:
         new_transaction_stmt = insert(transaction).values(
             type='debit',
             amount=amount,
@@ -217,17 +265,18 @@ async def transaction_debit(session: AsyncSession,
             amount=amount,
             balance=new_balance,
             created_at=datetime.utcnow(),
+            unlimited=current_user_balance.unlimited,
             user_id=user_id
         )
 
     await session.execute(new_transaction_stmt)
 
     if unlimited:
-        update_user_stmt = update(user).where(user.c.id == user_id).values(balance=new_balance)
+        update_user_stmt = update(user).where(user.c.id == user_id).values(balance=new_balance, unlimited=True)
     else:
         update_user_stmt = update(user)\
             .where(user.c.id == user_id)\
-            .values(balance=new_balance, unlimited=True)
+            .values(balance=new_balance)
     await session.execute(update_user_stmt)
 
     await session.commit()
@@ -248,13 +297,16 @@ async def add_or_update_pdf_file(session: AsyncSession,
 
     # Получение ID файла DOCX
     docx_file_stmt = select(docx_file.c.id).\
-        where(docx_file.c.name == docx_file_name, docx_file.c.user_id == user_id, docx_file.c.deleted == False)
+        where(docx_file.c.name == docx_file_name,
+              docx_file.c.user_id == user_id,
+              docx_file.c.deleted == False)
     docx_file_result = await session.execute(docx_file_stmt)
     docx_file_id = docx_file_result.scalar_one()
 
     # Выполнение транзакции
     transaction_success = await transaction_credit(session,
                                                    user_id,
+                                                   name,
                                                    docx_file_id,
                                                     "credit",
                                                    page_processed,
@@ -283,6 +335,15 @@ async def add_or_update_pdf_file(session: AsyncSession,
         return True
     else:
         return False
+
+
+async def transaction_list_(session: AsyncSession,
+                            user_id: int):
+    transaction_stmt = select(transaction). \
+        where(transaction.c.user_id == user_id)
+    transaction_result = await session.execute(transaction_stmt)
+    result = transaction_result.fetchall()
+    return [row._asdict() for row in result]
 
 if __name__ == "__main__":
     async def main():

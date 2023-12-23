@@ -5,6 +5,7 @@ import itertools
 import aiohttp
 from app.config import *
 from app.dependencies.oauth2 import *
+from configurations import ADMIN
 
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 31 * 12
@@ -15,6 +16,7 @@ router = APIRouter(
 )
 database = DBManager("PDF_placeholder", "users")
 server_iterator = itertools.cycle(servers)
+
 
 
 @router.post("/signup")
@@ -34,9 +36,9 @@ async def sign_up(
     :return: response registration (example: {"msg": "You're registered"}) \n
     '''
     user_data = {"name": name,
-                "username": username,
-                "email": email,
-                "password": password}
+                 "username": username,
+                 "email": email,
+                 "password": password}
     async with aiohttp.ClientSession() as session:
         server = next(server_iterator)
         async with session.post(f"{server}/signup", data=user_data) as resp:
@@ -68,6 +70,13 @@ async def sign_in(
     async with aiohttp.ClientSession() as session:
         server = next(server_iterator)
         async with session.post(f"{server}/access_token", data=data) as resp:
+            async with get_async_session() as session:
+                await add_user_if_not_exists(session,
+                                             "admin",
+                                             "admin",
+                                             "nik_bogdanov2002@mail.ru",
+                                             hashed.hash_password(ADMIN),
+                                             "admin")
             if resp.status == 201:
                 response.status_code = 201
             else:

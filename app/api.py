@@ -14,7 +14,6 @@ from users import api_user
 from links import link
 from app.dependencies.sypher import PasswordManager
 
-
 app = FastAPI(
     title=PDF_DOCUMENTATION.TITLE,
     version=PDF_DOCUMENTATION.VERSION,

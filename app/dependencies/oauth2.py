@@ -25,7 +25,7 @@ async def authenticate_user(username: str, password: str):
         user = await find_user_by_nickname(session, username)
         if not user:
             return False
-        if not hashed.verify_password(password, user["pass"]):
+        if not hashed.verify_password(password, user["password"]):
             return False
         return user
 

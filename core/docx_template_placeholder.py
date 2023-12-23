@@ -32,6 +32,11 @@ class DocxTemplatePlaceholder:
             return ErrorBlocker().process(self.error)
         try:
             self.__process(self.template_document, self.replace_tags)
+            for section in self.template_document.sections:
+                header = section.header
+                self.__process(header, self.replace_tags)
+                footer = section.footer
+                self.__process(footer, self.replace_tags)
             path = FILE_FOLDER + self.username + "/" + self.file_name
             self.template_document.save(path)
             return Convert2PDF(path, self.new, self.username).DocxToPdf()

@@ -40,11 +40,13 @@ async def sign_up(
             response.status_code = 208
         elif mail_find:
             response.status_code = 401
+            return {"msg": "This mail is registered"}
         else:
             user_id = await add_user(name,
                                      username,
                                      email,
                                      hashed.hash_password(password),
+                                     "user_role",
                                      session)
             create_user(username)
         return {"msg": "You're registered"}
@@ -92,13 +94,14 @@ async def delete_template(
 
 
 @app.get("/list_templates")
-async def list_templates(username: str):
+async def list_templates(response: Response, username: str):
     try:
         async with get_async_session() as session:
             user_data = await find_user_by_nickname(session, username)
             templates = await find_docx_files(session, user_data["id"])
             return {"templates": templates}
     except:
+        response.status_code = 401
         return {"templates": []}
 
 
@@ -157,6 +160,34 @@ async def debit(
     if unlimited:
         return {"balance": deb, "rate": "Unlimited"}
     return {"balance": deb, "rate": "Common"}
+
+@app.get("/transaction_list")
+async def transaction_list(
+        username: str,
+):
+    try:
+        async with get_async_session() as session:
+            user = await find_user_by_nickname(session, username)
+            list = await transaction_list_(session, user["id"])
+            result = []
+            for tmp in list:
+                t = {}
+                t["type"] = tmp['type']
+                t["created_at"] = tmp["created_at"]
+                if tmp['unlimited']:
+                    t["amount"] = "unlimited"
+                else:
+                    t["amount"] = tmp["amount"]
+                t["file"] = tmp["file"]
+                if t["type"] == "credit":
+                    t["template"] = await find_docx_file_by_id(session,
+                                                               user["id"],
+                                                               tmp["template"])
+                t["page_processed"] = tmp["page_processed"]
+                result.append(t)
+            return {"transactions": result}
+    except:
+        return {"transactions": []}
 
 if __name__ == "__main__":
     import os

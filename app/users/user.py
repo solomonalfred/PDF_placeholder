@@ -27,7 +27,8 @@ async def upload_docx(current_user: Annotated[dict, Depends(get_current_user)], 
     return JSONResponse(content=tags)
 
 @router.post("/placeholder_process", response_class=HTMLResponse)
-async def process_data(data: dict, current_user: Annotated[dict, Depends(get_current_user)]):
+async def process_data(data: dict,
+                       current_user: Annotated[dict, Depends(get_current_user)]):
     filename = data.get("filename")
     del data["filename"]
     username = current_user["nickname"]

@@ -16,7 +16,7 @@ router = APIRouter(
     responses={"404": {"msg": "Credentials exception"}}
 )
 
-database = DBManager("PDF_placeholder", "users")
+# database = DBManager("PDF_placeholder", "users")
 server_iterator = itertools.cycle(servers)
 
 
@@ -28,7 +28,7 @@ async def upload_docx(
     '''
     Get API user file's placeholder items \n
     :param current_user: include received access token in headers in request \n
-    (example: headers = {"Authorization": "<Bearer your_access_token>"})(required) \n
+    (example: headers = {"Authorization": "Bearer <your_access_token>"})(required) \n
     :param file: template file (necessarily .docs)(required) \n
     :return: dictionary of placeholder items in json \n
     '''
@@ -53,10 +53,11 @@ async def upload_docx(
 
 @router.post("/placeholder_process", response_class=FileResponse)
 async def process_data(
+        response: Response,
         filename: str,
-        newfilename: str,
         data: Dict[str, str],
-        current_user: Annotated[dict, Depends(get_current_user_api)]
+        current_user: Annotated[dict, Depends(get_current_user_api)],
+        newfilename: str = ""
 ):
     '''
     Process API user file with filled placeholder items \n
@@ -81,6 +82,7 @@ async def process_data(
                     return {"status": res["response"]}
                 return FileResponse(res["response"], filename=f"{newfilename}.pdf")
             else:
+                response.status_code = 401
                 res = await resp.json()
                 return {"status": res["response"]}
 
@@ -89,9 +91,9 @@ async def process_data(
 @router.post("/placeholder_link_process")
 async def process_data(
         filename: str,
-        newfilename: str,
         data: Dict[str, str],
-        current_user: Annotated[dict, Depends(get_current_user_api)]
+        current_user: Annotated[dict, Depends(get_current_user_api)],
+        newfilename: str = ""
 ):
     '''
     Process API user file with filled placeholder items \n
@@ -138,29 +140,51 @@ async def templates_list(current_user: Annotated[dict, Depends(get_current_user_
 
 @router.delete("/delete_template")
 async def delete_template(
-    templatename: str,
+    response: Response,
+    filename: str,
     current_user: Annotated[dict, Depends(get_current_user_api)]
 ):
     username = current_user["nickname"]
     del_list = {"username": username,
-                "templatename": templatename}
+                "templatename": filename}
     async with aiohttp.ClientSession() as session:
         server = next(server_iterator)
         async with session.delete(f"{server}/delete_template", params=del_list) as resp:
             res = await resp.json()
+            response.status_code = resp.status
             return JSONResponse(content=res)
+
 
 @router.post("/replenishment_balance")
 async def debit(
+        response: Response,
+        username: str,
         amount: int,
         current_user: Annotated[dict, Depends(get_current_user_api)],
         unlimited: int = 0,
 ):
     async with aiohttp.ClientSession() as session:
-        data = {"username": current_user["nickname"],
+        if current_user["role"] != "admin":
+            response.status_code = 401
+            return {"msg": "Access denied"}
+        data = {"username": username,
                 "amount": amount,
                 "unlimited": unlimited}
         server = next(server_iterator)
         async with session.post(f"{server}/replenishment_balance", params=data) as resp:
             res = await resp.json()
             return JSONResponse(content=res)
+
+
+@router.get("/transaction_list")
+async def transaction_list(current_user: Annotated[dict, Depends(get_current_user_api)]):
+    username = current_user["nickname"]
+    user = {"username": username}
+    async with aiohttp.ClientSession() as session:
+        server = next(server_iterator)
+        async with session.get(f"{server}/transaction_list", params=user) as resp:
+            if resp.status == 200:
+                res = await resp.json()
+                return JSONResponse(content=res)
+            else:
+                return {"status": "Server error"}

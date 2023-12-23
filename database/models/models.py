@@ -13,6 +13,7 @@ user = Table(
     Column("email", String, nullable=False),
     Column("password", String, nullable=False),
     Column("balance", DECIMAL, default=5000),
+    Column("role", String, nullable=False),
     Column("unlimited", Boolean, default=False),
     Column("registered_at", TIMESTAMP, default=datetime.utcnow)
 )
@@ -49,6 +50,7 @@ transaction = Table(
     Column("balance", DECIMAL, nullable=False),
     Column("page_processed", Integer, default=0),
     Column("created_at", TIMESTAMP, default=datetime.utcnow),
+    Column("file", String, default=""),
     Column("template", Integer, ForeignKey("docx_file.id")),
     Column("unlimited", Boolean, default=False),
     Column("user_id", Integer, ForeignKey("user.id"))
