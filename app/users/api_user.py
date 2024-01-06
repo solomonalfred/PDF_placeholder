@@ -189,7 +189,7 @@ async def transaction_list(current_user: Annotated[dict, Depends(get_current_use
                 return {"status": "Server error"}
 
 
-@router.post("/refresh_password")
+@router.post("/reset_password")
 async def refresh_password(
         response: Response,
         current_user: Annotated[dict, Depends(get_current_user_api)],
