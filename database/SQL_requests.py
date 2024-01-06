@@ -8,6 +8,7 @@ from decimal import Decimal
 async def add_user(name: str,
                    nickname: str,
                    email: str,
+                   telegram_id: str,
                    password: str,
                    role: str,
                    session: AsyncSession) -> int:
@@ -15,6 +16,7 @@ async def add_user(name: str,
         name=name,
         nickname=nickname,
         email=email,
+        telegramID=telegram_id,
         password=password,
         role=role,
         unlimited=False
@@ -31,11 +33,14 @@ async def add_user_if_not_exists(session: AsyncSession,
                                  name: str,
                                  nickname: str,
                                  email: str,
+                                 telegram_id: str,
                                  password: str,
                                  role: str,
                                  balance: int = 5000,
                                  unlimited: bool = True):
-    stmt = select(user).where(user.c.nickname == nickname, user.c.email == email)
+    stmt = select(user).where(user.c.nickname == nickname,
+                              user.c.email == email,
+                              user.c.telegramID == telegram_id)
     result = await session.execute(stmt)
     user_exists = result.scalar_one_or_none() is not None
 
@@ -44,6 +49,7 @@ async def add_user_if_not_exists(session: AsyncSession,
             name=name,
             nickname=nickname,
             email=email,
+            telegramID=telegram_id,
             password=password,
             balance=balance,
             role=role,
@@ -52,6 +58,35 @@ async def add_user_if_not_exists(session: AsyncSession,
         )
         await session.execute(stmt)
         await session.commit()
+
+
+async def update_user(session: AsyncSession,
+                                 name: str,
+                                 nickname: str,
+                                 email: str,
+                                 telegram_id: str,
+                                 password: str,
+                                 role: str,
+                                 balance: int,
+                                 unlimited: bool = True):
+    try:
+        update_user_stmt = (update(user)
+        .where(user.c.nickname == nickname)
+        .values(
+            name=name,
+            email=email,
+            telegramID=telegram_id,
+            password=password,
+            balance=balance,
+            role=role,
+            unlimited=unlimited
+        ))
+        await session.execute(update_user_stmt)
+        await session.commit()
+        return True
+    except:
+        return False
+
 
 
 async def find_user_by_nickname(session: AsyncSession, nickname: str):
@@ -66,6 +101,7 @@ async def find_user_by_nickname(session: AsyncSession, nickname: str):
             "name": user_record.name,
             "nickname": user_record.nickname,
             "email": user_record.email,
+            "telegramID": user_record.telegramID,
             "balance": int(user_record.balance),
             "password": user_record.password,
             "role": user_record.role,
@@ -86,6 +122,28 @@ async def find_user_by_email(session: AsyncSession, email: str):
             "name": user_record.name,
             "nickname": user_record.nickname,
             "email": user_record.email,
+            "telegramID": user_record.telegramID,
+            "balance": int(user_record.balance),
+            "password": user_record.password,
+            "role": user_record.role,
+            "unlimited": user_record.unlimited,
+            "registered_at": user_record.registered_at
+        }
+    else:
+        return None
+
+async def find_user_by_telegram(session: AsyncSession, tID: str):
+    stmt = select(user).where(user.c.telegramID == tID)
+    result = await session.execute(stmt)
+    user_record = result.one_or_none()
+
+    if user_record:
+        return {
+            "id": user_record.id,
+            "name": user_record.name,
+            "nickname": user_record.nickname,
+            "email": user_record.email,
+            "telegramID": user_record.telegramID,
             "balance": int(user_record.balance),
             "password": user_record.password,
             "role": user_record.role,

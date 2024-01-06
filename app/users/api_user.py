@@ -87,7 +87,6 @@ async def process_data(
                 return {"status": res["response"]}
 
 
-
 @router.post("/placeholder_link_process")
 async def process_data(
         filename: str,
@@ -188,3 +187,20 @@ async def transaction_list(current_user: Annotated[dict, Depends(get_current_use
                 return JSONResponse(content=res)
             else:
                 return {"status": "Server error"}
+
+
+@router.post("/refresh_password")
+async def refresh_password(
+        response: Response,
+        current_user: Annotated[dict, Depends(get_current_user_api)],
+        new_password: str
+):
+    response.status_code = 201
+    username = current_user["nickname"]
+    user = {"username": username,
+            "new_password": new_password}
+    async with aiohttp.ClientSession() as session:
+        server = next(server_iterator)
+        async with session.post(f"{server}/refresh_password", params=user) as resp:
+            res = await resp.json()
+            return JSONResponse(content=res)

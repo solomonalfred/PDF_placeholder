@@ -11,6 +11,7 @@ user = Table(
     Column("name", String, nullable=False),
     Column("nickname", String, nullable=False),
     Column("email", String, nullable=False),
+    Column("telegramID", String, nullable=False),
     Column("password", String, nullable=False),
     Column("balance", DECIMAL, default=5000),
     Column("role", String, nullable=False),

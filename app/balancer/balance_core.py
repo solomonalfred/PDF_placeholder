@@ -15,7 +15,7 @@ from app.modules.user_modules import *
 from app.modules.user_directories import *
 from database.SQL_requests import *
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 31 * 12
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 30 * 12
 
 app = FastAPI()
 database = DBManager("PDF_placeholder", "users")
@@ -24,27 +24,51 @@ database = DBManager("PDF_placeholder", "users")
 # Todo: auth
 
 
+@app.get("/extra_token")
+async def extra_token(
+        response: Response,
+        telegram_id: str
+):
+    response.status_code = 201
+    async with get_async_session() as session:
+        telegram_find = await find_user_by_telegram(session, telegram_id)
+        if telegram_find:
+            access_token_expires = timedelta(minutes=5)
+            access_token = create_access_token(
+                data={"sub": telegram_find["nickname"]}, expires_delta=access_token_expires
+            )
+            return {"access_token": access_token, "token_type": "Bearer"}
+        response.status_code = 401
+        return {"access_token": "", "token_type": "Bearer"}
+
+
 @app.post("/signup")
 async def sign_up(
         response: Response,
         name: str = Form(...),
         username: str = Form(...),
         email: str = Form(...),
+        telegram_id: str = Form(...),
         password: str = Form(...)
 ):
     response.status_code = 201
     async with get_async_session() as session:
         user_data = await find_user_by_nickname(session, username)
         mail_find = await find_user_by_email(session, email)
+        telegram_find = await find_user_by_telegram(session, telegram_id)
         if user_data:
             response.status_code = 208
         elif mail_find:
             response.status_code = 401
             return {"msg": "This mail is registered"}
+        elif telegram_find:
+            response.status_code = 401
+            return {"msg": "This telegramID is registered"}
         else:
             user_id = await add_user(name,
                                      username,
                                      email,
+                                     telegram_id,
                                      hashed.hash_password(password),
                                      "user_role",
                                      session)
@@ -188,6 +212,32 @@ async def transaction_list(
             return {"transactions": result}
     except:
         return {"transactions": []}
+
+
+@app.post("/refresh_password")
+async def refresh_password(
+        response: Response,
+        username: str,
+        new_password: str
+):
+    response.status_code = 201
+    async with get_async_session() as session:
+        user = await find_user_by_nickname(session, username)
+        renew_pass = await update_user(session,
+                                       user["name"],
+                                       user["nickname"],
+                                       user["email"],
+                                       user["telegramID"],
+                                       hashed.hash_password(new_password),
+                                       user["role"],
+                                       user["balance"],
+                                       user["unlimited"],
+                                       )
+        if renew_pass:
+            return {"msg": "Success refreshed password"}
+        response.status_code = 401
+        return {"msg": "Internal server error"}
+
 
 if __name__ == "__main__":
     import os

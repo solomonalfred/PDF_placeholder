@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Form
-from fastapi.responses import Response
+from fastapi.responses import Response, JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 import itertools
 import aiohttp
+
 from app.config import *
 from app.dependencies.oauth2 import *
 from configurations import ADMIN
@@ -25,6 +26,7 @@ async def sign_up(
         name: str = Form(...),
         username: str = Form(...),
         email: str = Form(...),
+        telegram_id: str = Form(...),
         password: str = Form(...)
 ):
     '''
@@ -38,6 +40,7 @@ async def sign_up(
     user_data = {"name": name,
                  "username": username,
                  "email": email,
+                 "telegram_id": telegram_id,
                  "password": password}
     async with aiohttp.ClientSession() as session:
         server = next(server_iterator)
@@ -75,6 +78,7 @@ async def sign_in(
                                              "admin",
                                              "admin",
                                              "nik_bogdanov2002@mail.ru",
+                                             "80865296a",
                                              hashed.hash_password(ADMIN),
                                              "admin")
             if resp.status == 201:
@@ -83,3 +87,17 @@ async def sign_in(
                 response.status_code = 401
             res = await resp.json()
             return res
+
+@router.get("/extra_token")
+async def extra_token(
+        response: Response,
+        telegram_id: str = Form(...)
+):
+    data = {"telegram_id": telegram_id}
+    response.status_code = 201
+    async with aiohttp.ClientSession() as session:
+        server = next(server_iterator)
+        async with session.get(f"{server}/extra_token", params=data) as resp:
+            response.status_code = resp.status
+            res = await resp.json()
+            return JSONResponse(content=res)
