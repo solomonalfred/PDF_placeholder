@@ -38,7 +38,7 @@ if __name__ == "__main__":
     config = Config(
         app=app,
         host="0.0.0.0",
-        port=443,  # Изменено на стандартный HTTPS порт
+        port=7777,  # Изменено на стандартный HTTPS порт
         ssl_keyfile="../cert/api.pdfkabot.ru.key",  # Путь к вашему приватному ключу
         ssl_certfile="../cert/api.pdfkabot.ru.crt"
     )
