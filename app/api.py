@@ -22,7 +22,6 @@ app = FastAPI(
 
 templates = Jinja2Templates(directory="../templates")
 hashed = PasswordManager()
-
 app.include_router(guest.router)
 app.include_router(api_guest.router)
 app.include_router(user.router)
