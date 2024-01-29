@@ -31,5 +31,25 @@ def create_word_document(num_pages, filename):
 
     doc.save(filename)
 
+
+def create_docx(elements_per_page, number_of_pages):
+    doc = Document()
+
+    for page in range(number_of_pages):
+        for element in range(elements_per_page):
+            # Генерируем случайный текст для элемента (от 2 до 20 символов)
+            random_text = ''.join(random.choices(string.ascii_letters + string.digits, k=random.randint(2, 20)))
+            # Добавляем элемент (текст) в документ, обрамленный << и >>
+            doc.add_paragraph(f'<<{random_text}>>')
+
+        # Добавляем разрыв страницы после каждой страницы, кроме последней
+        if page < number_of_pages - 1:
+            doc.add_section()
+
+    # Сохраняем документ
+    doc.save('output.docx')
+
+
 if __name__ == "__main__":
-    create_word_document(100, 'random_text_document.docx')
+    # create_word_document(100, 'random_text_document.docx')
+    create_docx(25, 1)

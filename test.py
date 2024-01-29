@@ -3,12 +3,10 @@ import time
 import aiohttp
 import asyncio
 
-# Todo: Потоковая отдача файлов
+# server url: https://194.58.121.210:7777
+# host url: https://0.0.0.0:7777
 
-# server url: http://194.58.121.210:7777
-# host url: http://0.0.0.0:7777
-
-url_path = 'http://0.0.0.0:7777'
+url_path = 'https://194.58.121.210:7777'
 
 # регистрация через апи
 url = f"{url_path}/api/signup"
@@ -16,6 +14,7 @@ data = {
     "name": "Nik",
     "username": "redrum",
     "email": "nik1@mail.ru",
+    "telegram_id": "808652960",
     "password": "12345"
 }
 res = requests.post(url, data=data)
@@ -185,4 +184,27 @@ res = requests.get(url, headers=headers)
 for i in res.json()["transactions"]:
     print(i)
 
+# сбос(изменение) пароля
+url = f"{url_path}/api/extra_token"
+data = {"telegram_id": "808652960"}
+res = requests.get(url, data=data)
+token_extra = res.json()
+print("Временный токен на 5 минут")
+print(token_extra)
 
+url = f"{url_path}/api_user/reset_password"
+headers = {"Authorization": f"{token_extra['token_type']} {token_extra['access_token']}"}
+data = {"new_password": "54321"}
+res = requests.post(url, params=data, headers=headers)
+print("Изменение пароля")
+print(res.json())
+
+url = f"{url_path}/api/access_token"
+data = {
+        "username": "redrum",
+        "password": "54321"
+    }
+res = requests.post(url, data=data)
+token = res.json()
+print("получение access token")
+print(token)

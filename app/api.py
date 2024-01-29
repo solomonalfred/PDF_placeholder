@@ -37,7 +37,7 @@ if __name__ == "__main__":
     config = Config(
         app=app,
         host="0.0.0.0",
-        port=443,
+        port=7778,
         ssl_keyfile="../cert/api.pdfkabot.ru.key",
         ssl_certfile="../cert/api.pdfkabot.ru.crt"
     )

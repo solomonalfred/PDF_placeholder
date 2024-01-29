@@ -30,7 +30,7 @@ services:
     volumes:
       - ./files:/files
     ports:
-      - "7777:7777"
+      - "443:7777"
     restart: always
     environment:
       DB_HOST: postgres
