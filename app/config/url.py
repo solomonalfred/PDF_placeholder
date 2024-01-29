@@ -1,8 +1,9 @@
 # server url: http://194.58.121.210:7777
 # host url: http://0.0.0.0:7777
+# prod url: https://api.pdfkabot.ru
 
 
-SERVER_URL = "http://194.58.121.210:7777"
+SERVER_URL = "https://api.pdfkabot.ru"
 
 servers = (
     "http://localhost:8001",
