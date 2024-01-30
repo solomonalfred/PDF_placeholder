@@ -18,7 +18,7 @@ from database.SQL_requests import *
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 30 * 12
 
 app = FastAPI()
-# database = DBManager("PDF_placeholder", "users")
+database = DBManager("PDF_placeholder", "users")
 
 
 # Todo: auth

@@ -15,7 +15,7 @@ router = APIRouter(
     prefix="/api",
     tags=["api"]
 )
-# database = DBManager("PDF_placeholder", "users")
+database = DBManager("PDF_placeholder", "users")
 server_iterator = itertools.cycle(servers)
 
 

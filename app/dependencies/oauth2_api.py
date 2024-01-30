@@ -14,7 +14,7 @@ from configurations import SECRET_KEY, ALGORITHM
 
 
 oauth2_scheme_api = OAuth2PasswordBearer(tokenUrl="/api/access_token")
-# database = DBManager("PDF_placeholder", "users")
+database = DBManager("PDF_placeholder", "users")
 hashed = PasswordManager()
 
 

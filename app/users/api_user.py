@@ -16,7 +16,7 @@ router = APIRouter(
     responses={"404": {"msg": "Credentials exception"}}
 )
 
-# database = DBManager("PDF_placeholder", "users")
+database = DBManager("PDF_placeholder", "users")
 server_iterator = itertools.cycle(servers)
 
 
@@ -29,7 +29,7 @@ async def upload_docx(
     Get API user file's placeholder items \n
     :param current_user: include received access token in headers in request \n
     (example: headers = {"Authorization": "Bearer <your_access_token>"})(required) \n
-    :param file: template file (necessarily .docs)(required) \n
+    :param file: template file (necessarily .docx)(required) \n
     :return: dictionary of placeholder items in json \n
     '''
     file_path = save_file(current_user["nickname"], file)

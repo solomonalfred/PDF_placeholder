@@ -97,6 +97,7 @@ class DocxTemplatePlaceholder:
                         text = regex.sub(replace, reg)
                         inline[i].text = text
                         break
+
                 reg = ""
 
         for table in doc.tables:
@@ -110,4 +111,4 @@ class DocxTemplatePlaceholder:
             done_tags[re.compile(fr"<<{regex}>>")] = replace
         return done_tags
 
-# DocxTemplatePlaceholder("out_test_files", "./test_files/pdf_test_original.docx", {"name": "idi", "lastname": "na", "data": "hui"}).process()
+# DocxTemplatePlaceholder("out_test_files", "../test_files/Bible_God_mode.docx", "Bible_God_mode",{"Бог":""}).process()

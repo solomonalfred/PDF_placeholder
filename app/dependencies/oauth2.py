@@ -16,7 +16,7 @@ from configurations import SECRET_KEY, ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/signin")
-# database = DBManager("PDF_placeholder", "users")
+database = DBManager("PDF_placeholder", "users")
 hashed = PasswordManager()
 
 

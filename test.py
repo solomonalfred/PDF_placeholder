@@ -4,17 +4,17 @@ import aiohttp
 import asyncio
 
 # server url: https://194.58.121.210:7777
-# host url: https://0.0.0.0:7777
+# host url: http://0.0.0.0:7777
 
-url_path = 'https://194.58.121.210:7777'
+url_path = 'http://0.0.0.0:7777'
 
 # регистрация через апи
 url = f"{url_path}/api/signup"
 data = {
-    "name": "Nik",
-    "username": "redrum",
-    "email": "nik1@mail.ru",
-    "telegram_id": "808652960",
+    "name": "Nikita",
+    "username": "laplas",
+    "email": "nik2@mail.ru",
+    "telegram_id": "808652965",
     "password": "12345"
 }
 res = requests.post(url, data=data)
@@ -25,7 +25,7 @@ print(res.status_code)
 # получение access token
 url = f"{url_path}/api/access_token"
 data = {
-        "username": "redrum",
+        "username": "laplas",
         "password": "12345"
     }
 res = requests.post(url, data=data)
@@ -186,7 +186,7 @@ for i in res.json()["transactions"]:
 
 # сбос(изменение) пароля
 url = f"{url_path}/api/extra_token"
-data = {"telegram_id": "808652960"}
+data = {"telegram_id": "808652965"}
 res = requests.get(url, data=data)
 token_extra = res.json()
 print("Временный токен на 5 минут")
@@ -201,7 +201,7 @@ print(res.json())
 
 url = f"{url_path}/api/access_token"
 data = {
-        "username": "redrum",
+        "username": "laplas",
         "password": "54321"
     }
 res = requests.post(url, data=data)
