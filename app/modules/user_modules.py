@@ -86,6 +86,11 @@ def get_tags(file_path: str):
         try:
             doc = Document(file_path)
             process(doc)
+            for section in doc.sections:
+                header = section.header
+                process(header)
+                footer = section.footer
+                process(footer)
             file.write("Tags: correct document\n")
         except:
             file.write("Tags error: incorrect document\n")

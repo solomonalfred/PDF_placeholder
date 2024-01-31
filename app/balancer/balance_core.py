@@ -197,17 +197,18 @@ async def transaction_list(
             for tmp in list:
                 t = {}
                 t["type"] = tmp['type']
-                t["created_at"] = tmp["created_at"]
+                t["balance"] = tmp['balance']
                 if tmp['unlimited']:
                     t["amount"] = "unlimited"
                 else:
                     t["amount"] = tmp["amount"]
-                t["file"] = tmp["file"]
                 if t["type"] == "credit":
+                    t["file"] = tmp["file"]
                     t["template"] = await find_docx_file_by_id(session,
                                                                user["id"],
                                                                tmp["template"])
-                t["page_processed"] = tmp["page_processed"]
+                    t["page_processed"] = tmp["page_processed"]
+                t["created_at"] = tmp["created_at"]
                 result.append(t)
             return {"transactions": result}
     except:
