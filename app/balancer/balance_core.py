@@ -174,12 +174,12 @@ async def process(response: Response,
 
 @app.post("/replenishment_balance")
 async def debit(
-        username: str,
+        telegram_id: str,
         amount: int,
         unlimited: int = 0
 ):
     async with get_async_session() as session:
-        user = await find_user_by_nickname(session, username)
+        user = await find_user_by_telegram(session, telegram_id)
         deb = await transaction_debit(session, user["id"], Decimal(amount), bool(unlimited))
     if unlimited:
         return {"balance": deb, "rate": "Unlimited"}
@@ -208,6 +208,10 @@ async def transaction_list(
                                                                user["id"],
                                                                tmp["template"])
                     t["page_processed"] = tmp["page_processed"]
+                else:
+                    t["file"] = "-"
+                    t["template"] = "-"
+                    t["page_processed"] = "-"
                 t["created_at"] = tmp["created_at"]
                 result.append(t)
             return {"transactions": result}

@@ -111,6 +111,7 @@ async def find_user_by_nickname(session: AsyncSession, nickname: str):
     else:
         return None
 
+
 async def find_user_by_email(session: AsyncSession, email: str):
     stmt = select(user).where(user.c.email == email)
     result = await session.execute(stmt)

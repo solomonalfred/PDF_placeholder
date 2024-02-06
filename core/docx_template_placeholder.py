@@ -14,7 +14,7 @@ class DocxTemplatePlaceholder:
                  username: str,
                  template: str,
                  newfilename: str,
-                 tags: Dict,
+                 tags: Dict
     ):
         self.error = ErrorType.ok
         try:

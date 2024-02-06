@@ -13,3 +13,6 @@ sqlalchemy
 alembic
 asyncpg
 python-dotenv
+pandas
+openpyxl
+xlsxwriter

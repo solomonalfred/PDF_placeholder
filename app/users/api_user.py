@@ -2,6 +2,8 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse, FileResponse, Response
 from pathlib import Path
 from typing import Dict
+import pandas as pd
+from io import BytesIO
 from app.dependencies.oauth2_api import *
 from app.modules.user_modules import *
 from app.config import *
@@ -157,7 +159,7 @@ async def delete_template(
 @router.post("/replenishment_balance")
 async def debit(
         response: Response,
-        username: str,
+        telegram_id: str,
         amount: int,
         current_user: Annotated[dict, Depends(get_current_user_api)],
         unlimited: int = 0,
@@ -166,7 +168,7 @@ async def debit(
         if current_user["role"] != "admin":
             response.status_code = 401
             return {"msg": "Access denied"}
-        data = {"username": username,
+        data = {"telegram_id": telegram_id,
                 "amount": amount,
                 "unlimited": unlimited}
         server = next(server_iterator)
@@ -185,6 +187,33 @@ async def transaction_list(current_user: Annotated[dict, Depends(get_current_use
             if resp.status == 200:
                 res = await resp.json()
                 return JSONResponse(content=res)
+            else:
+                return {"status": "Server error"}
+
+
+@router.get("/transaction_list_excel")
+async def transaction_list_excel(current_user: Annotated[dict, Depends(get_current_user_api)]):
+    username = current_user["nickname"]
+    user = {"username": username}
+    async with aiohttp.ClientSession() as session:
+        server = next(server_iterator)
+        async with session.get(f"{server}/transaction_list", params=user) as resp:
+            if resp.status == 200:
+                res = await resp.json()
+                df = pd.DataFrame(res["transactions"])
+                output = BytesIO()
+                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                    df.to_excel(writer, sheet_name='Лист1', index=False)
+                    workbook = writer.book
+                    worksheet = writer.sheets['Лист1']
+                    header_format = workbook.add_format({'bold': True})
+                    for col_num, value in enumerate(df.columns.values):
+                        worksheet.write(0, col_num, value, header_format)
+                    writer._save()
+                output.seek(0)
+                return Response(content=output.read(),
+                                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                headers={"Content-Disposition": "attachment; filename=report.xlsx"})
             else:
                 return {"status": "Server error"}
 
