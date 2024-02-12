@@ -145,8 +145,10 @@ async def process(response: Response,
         user = await find_user_by_nickname(session, username)
         file_path = await find_docx_file(session, user["id"], filename)
         if file_path is None:
+            response.status_code = 401
             return {"response": "Template deleted"}
         if file_path["deleted"]:
+            response.status_code = 401
             return {"response": "Template deleted"}
         file_path = file_path["path"]
         if len(newfilename) == 0:
@@ -156,6 +158,7 @@ async def process(response: Response,
         result = True
         if filler.find(newfilename) == -1:
             response.status_code = 401
+            result = False
         else:
             file = Path(filler).name
             file_size = os.path.getsize(filler)
@@ -225,7 +228,7 @@ async def refresh_password(
         username: str,
         new_password: str
 ):
-    response.status_code = 201
+    response.status_code = 200
     async with get_async_session() as session:
         user = await find_user_by_nickname(session, username)
         renew_pass = await update_user(session,
