@@ -140,8 +140,9 @@ async def process(response: Response,
                   filename: str,
                   newfilename: str,
                   username: str,
-                  data: Dict[str, str]):
+                  data: Dict):
     async with get_async_session() as session:
+        response.status_code = 200
         user = await find_user_by_nickname(session, username)
         file_path = await find_docx_file(session, user["id"], filename)
         if file_path is None:

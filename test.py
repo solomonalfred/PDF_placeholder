@@ -216,3 +216,57 @@ token = res.json()
 print("получение access token")
 print(token)
 
+# генерация таблицы
+data ={ "cryptocurrencies": [
+    {
+      "name": "Bitcoin",
+      "symbol": "BTC",
+      "price_usd": 39857.20,
+      "price_eur": 34991.42,
+      "price_gbp": 29489.55
+    },
+    {
+      "name": "Ethereum",
+      "symbol": "ETH",
+      "price_usd": 2845.62,
+      "price_eur": 2498.75,
+      "price_gbp": 2104.89
+    },
+    {
+      "name": "Ripple",
+      "symbol": "XRP",
+      "price_usd": 0.84,
+      "price_eur": 0.74,
+      "price_gbp": 0.62
+    }
+  ],
+"traffic": [
+    {
+      "name": "Bitcoin",
+      "symbol": "BTC",
+      "price_usd": 39857.20,
+      "price_eur": 34991.42,
+      "price_gbp": 29489.55
+    },
+    {
+      "name": "Ethereum",
+      "symbol": "ETH",
+      "price_usd": 2845.62,
+      "price_eur": 2498.75,
+      "price_gbp": 2104.89
+    },
+    {
+      "name": "Ripple",
+      "symbol": "XRP",
+      "price_usd": 0.84,
+      "price_eur": 0.74,
+      "price_gbp": 0.62
+    }
+  ]
+}
+url = f"{url_path}/api_user/render_table"
+res = requests.get(url, json=data, headers=headers)
+
+with open('out_test_files/out.pdf', 'wb') as file:
+    file.write(res.content)
+

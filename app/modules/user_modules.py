@@ -20,6 +20,7 @@ def save_file(username: str, input_file_data: UploadFile = File(...)):
 
 def get_tags(file_path: str):
     tags = []
+    tb = []
     pattern = r"<<(.*?)>>"
     def process(doc):
         reg = ""
@@ -71,31 +72,24 @@ def get_tags(file_path: str):
                     continue
                 matches = re.findall(pattern, reg)
                 for match in matches:
-                    tags.append(match)
+                    if match.find('_tb') != -1: tb.append(match)
+                    else: tags.append(match)
         for table in doc.tables:
             for row in table.rows:
                 for cell in row.cells:
                     process(cell)
 
-    dirname = os.path.dirname(__file__)
-    file = os.path.join(dirname, "../../tags.txt")
-    with open(file, "w") as file:
-        #         file.write(f"{os.getcwd()}\n")
-        #         file.write(f"{file_path}\n")
-        #         file.write(f"{os.path.isfile(file_path)}\n")
-        try:
-            doc = Document(file_path)
-            process(doc)
-            for section in doc.sections:
-                header = section.header
-                process(header)
-                footer = section.footer
-                process(footer)
-            file.write("Tags: correct document\n")
-        except:
-            file.write("Tags error: incorrect document\n")
-
-    return list(set(tags))
+    try:
+        doc = Document(file_path)
+        process(doc)
+        for section in doc.sections:
+            header = section.header
+            process(header)
+            footer = section.footer
+            process(footer)
+    except:
+        pass
+    return [list(set(tags)), list(set(tb))]
 
 def dict_tags(tags):
     tag = {}

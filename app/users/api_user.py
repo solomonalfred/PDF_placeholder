@@ -21,7 +21,6 @@ router = APIRouter(
 database = DBManager("PDF_placeholder", "users")
 server_iterator = itertools.cycle(servers)
 
-
 @router.post("/keys")
 async def upload_docx(
         response: Response,
@@ -52,9 +51,12 @@ async def upload_docx(
                                                                     file_path,
                                                                     file_size,
                                                                     user_id)
-                    data = dict_tags(res["response"])
-                    return JSONResponse(content={"count": len(data.keys()),
-                                                 "keys": data})
+                    data_tags = dict_tags(res["response"][0])
+                    data_tb = dict_tags(res["response"][1])
+                    return JSONResponse(content={"count_tags": len(data_tags.keys()),
+                                                 "count_tables": len(data_tb.keys()),
+                                                 "keys": data_tags,
+                                                 "tables": data_tb})
                 else:
                     response.status_code = 400
                     return {"status": "Bad request"}
@@ -66,7 +68,7 @@ async def upload_docx(
 async def process_data(
         response: Response,
         filename: str,
-        data: Dict[str, str],
+        data: Dict,
         current_user: Annotated[dict, Depends(get_current_user_api)],
         newfilename: str = ""
 ):
@@ -108,7 +110,7 @@ async def process_data(
 async def process_data(
         response: Response,
         filename: str,
-        data: Dict[str, str],
+        data: Dict,
         current_user: Annotated[dict, Depends(get_current_user_api)],
         newfilename: str = ""
 ):
@@ -241,7 +243,8 @@ async def transaction_list(
 @router.get("/transactions_export")
 async def transaction_list_excel(
         response: Response,
-        current_user: Annotated[dict, Depends(get_current_user_api)]):
+        current_user: Annotated[dict, Depends(get_current_user_api)]
+):
     username = current_user["nickname"]
     user = {"username": username}
     async with aiohttp.ClientSession() as session:
@@ -271,6 +274,7 @@ async def transaction_list_excel(
         except:
             response.status_code = 500
             return {"msg": "Internal server error"}
+
 
 @router.post("/reset_password")
 async def refresh_password(
