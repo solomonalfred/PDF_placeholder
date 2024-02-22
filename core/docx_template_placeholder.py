@@ -94,7 +94,7 @@ class DocxTemplatePlaceholder:
                     continue
                 elif right != -1:
                     reg += inline[i].text
-                    inline[i].text = ""
+                    inline[i].text = reg
                     flag = False
                 elif left == -1 and right == -1 and flag:
                     reg += inline[i].text
@@ -102,7 +102,7 @@ class DocxTemplatePlaceholder:
                     continue
                 elif left == -1 and right != -1 and flag:
                     reg += inline[i].text
-                    inline[i].text = ""
+                    inline[i].text = reg
                 elif left_part != -1:
                     if len(inline) > i+1 and inline[i + 1].text[0] == "<":
                         reg += inline[i].text
@@ -117,7 +117,7 @@ class DocxTemplatePlaceholder:
                         continue
                     elif reg[-1] == ">":
                         reg += inline[i].text
-                        inline[i].text = ""
+                        inline[i].text = reg
                     else:
                         continue
                 else:
@@ -152,8 +152,13 @@ class DocxTemplatePlaceholder:
     def __prepare_tags(self, tags):
         done_tags = dict()
         done_tb = dict()
-        for regex, replace in tags["keys"].items():
-            done_tags[re.compile(fr"<<{regex}>>")] = replace
+        if len(tags.items()) == 0: return [done_tags, done_tb]
+        if tags.get("keys") is not None:
+            for regex, replace in tags["keys"].items():
+                done_tags[re.compile(fr"<<{regex}>>")] = replace
+        tb_flag = tags.get("tables")
+        if tb_flag is None:
+            return [done_tags, done_tb]
         for regex, replace in tags["tables"].items():
             done_tb[re.compile(fr"<<{regex}>>")] = replace
         return [done_tags, done_tb]
@@ -161,7 +166,7 @@ class DocxTemplatePlaceholder:
 if __name__ == "__main__":
     data = {}
     data['keys'] = {}
-    data['tables'] = {}
+    # data['tables'] = {}
     data["keys"]["hi"] = "Привет"
     data["keys"]["buy"] = "Покеда"
     data["keys"]["name"] = "Laplas"
@@ -169,29 +174,29 @@ if __name__ == "__main__":
     data['keys']['data'] = "February"
     data['keys']['satana'] = 'God'
 
-    data['tables']['cryptocurrency_tb'] = [
-        {
-            "name": "Bitcoin",
-            "symbol": "BTC",
-            "price_usd": 39857.20,
-            "price_eur": 34991.42,
-            "price_gbp": 29489.55
-        },
-        {
-            "name": "Ethereum",
-            "symbol": "ETH",
-            "price_usd": 2845.62,
-            "price_eur": 2498.75,
-            "price_gbp": 2104.89
-        },
-        {
-            "name": "Ripple",
-            "symbol": "XRP",
-            "price_usd": 0.84,
-            "price_eur": 0.74,
-            "price_gbp": 0.62
-        }
-    ]
+    # data['tables']['cryptocurrency_tb'] = [
+    #         {
+    #             "name": "Bitcoin",
+    #             "symbol": "BTC",
+    #             "price_usd": 39857.20,
+    #             "price_eur": 34991.42,
+    #             "price_gbp": 29489.55
+    #         },
+    #         {
+    #             "name": "Ethereum",
+    #             "symbol": "ETH",
+    #             "price_usd": 2845.62,
+    #             "price_eur": 2498.75,
+    #             "price_gbp": 2104.89
+    #         },
+    #         {
+    #             "name": "Ripple",
+    #             "symbol": "XRP",
+    #             "price_usd": 0.84,
+    #             "price_eur": 0.74,
+    #             "price_gbp": 0.62
+    #         }
+    #     ]
 
     DocxTemplatePlaceholder("out_test_files",
                             "../test_files/footers.docx",
