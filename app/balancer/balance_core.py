@@ -1,4 +1,3 @@
-import aiohttp
 from fastapi import FastAPI, Form
 from fastapi.responses import JSONResponse, Response
 from fastapi.security import OAuth2PasswordRequestForm
@@ -6,8 +5,7 @@ from pathlib import Path
 from typing import Dict
 import sys
 import os
-from decimal import Decimal
-
+import uvicorn
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from app.dependencies.oauth2 import *
 from core.core_object import Core
@@ -249,8 +247,6 @@ async def refresh_password(
 
 
 if __name__ == "__main__":
-    import os
-    import uvicorn
 
     port = os.getenv("PORT")
     uvicorn.run(app, host="0.0.0.0", port=int(port))

@@ -39,7 +39,8 @@ class DocxTemplatePlaceholder:
                 self.__process(header, self.replace_tags)
                 footer = section.footer
                 self.__process(footer, self.replace_tags)
-            path = FILE_FOLDER + "volumes/" + self.username + "/" + self.file_name
+            path = (FILE_FOLDER + "volumes/" + self.username + "/"
+                    + self.file_name.replace('.docx', '_new.docx'))
             self.template_document.save(path)
             return Convert2PDF(path, self.new, self.username).DocxToPdf()
         except Exception as e:
@@ -56,7 +57,6 @@ class DocxTemplatePlaceholder:
             for regex, replace in tags[1].items():
                 if regex.search(p.text):
                     table_flag = True
-                    pattern = r'<<[^>]*_tb[^>]*>>'
                     p.text = ''
                     num_columns = len(replace[0])
                     table = doc.add_table(rows=1, cols=num_columns)
@@ -73,7 +73,6 @@ class DocxTemplatePlaceholder:
                         for idx, key in enumerate(keys):
                             row_cells[idx].text = str(crypto[key])
                             self.__set_cell_borders(row_cells[idx], border_sz=8)
-                    elements = doc.element.body
                     tbl_element = table._tbl
                     p_element = p._p
                     p_parent = p_element.getparent()

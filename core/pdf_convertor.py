@@ -11,7 +11,6 @@ class Convert2PDF:
                  file_path: str,
                  newfilename: str,
                  username: str):
-        # Todo под расширение для других форматов
         self.file = file_path
         self.new = newfilename
         self.username = username
@@ -20,7 +19,6 @@ class Convert2PDF:
         directory = FILE_FOLDER + "volumes/" + self.username
         if os.path.isdir(directory) == False:
             return ErrorBlocker().process(ErrorType.missing_doc)
-        print(directory)
         subprocess.call(['/usr/bin/soffice',
                          '--headless',
                          '--convert-to',
@@ -28,7 +26,8 @@ class Convert2PDF:
                          '--outdir',
                          directory,
                          self.file])
-        old = self.file.replace('.docx', '.pdf')
+        os.remove(self.file)
+        old = self.file.replace('_new.docx', '_new.pdf')
         new = directory + '/' + self.new + '.pdf'
         subprocess.call(['mv', old, new])
         if os.path.exists(new):
