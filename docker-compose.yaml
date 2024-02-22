@@ -47,7 +47,7 @@ services:
       context: ./
       dockerfile: "docker/api/Dockerfile"
     volumes:
-      - ./files:/files
+      - ./volumes:/volumes
     ports:
       - "7777:7777"
     labels:

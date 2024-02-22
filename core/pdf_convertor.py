@@ -17,9 +17,10 @@ class Convert2PDF:
         self.username = username
 
     def DocxToPdf(self):
-        directory = FILE_FOLDER + self.username
+        directory = FILE_FOLDER + "volumes/" + self.username
         if os.path.isdir(directory) == False:
             return ErrorBlocker().process(ErrorType.missing_doc)
+        print(directory)
         subprocess.call(['/usr/bin/soffice',
                          '--headless',
                          '--convert-to',

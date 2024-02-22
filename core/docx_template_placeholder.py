@@ -39,7 +39,7 @@ class DocxTemplatePlaceholder:
                 self.__process(header, self.replace_tags)
                 footer = section.footer
                 self.__process(footer, self.replace_tags)
-            path = FILE_FOLDER + self.username + "/" + self.file_name
+            path = FILE_FOLDER + "volumes/" + self.username + "/" + self.file_name
             self.template_document.save(path)
             return Convert2PDF(path, self.new, self.username).DocxToPdf()
         except Exception as e:

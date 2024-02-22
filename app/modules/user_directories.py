@@ -5,7 +5,8 @@ def create_user(nickname: str) -> bool:
     try:
         path = os.getcwd()
         directory = "/".join(path.split("/")[:-1])
-        directory += "/" + nickname
+        directory += "/volumes/" + nickname
+        print(directory)
         os.mkdir(directory)
         return True
     except:
