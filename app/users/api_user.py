@@ -29,8 +29,8 @@ async def upload_docx(
 ):
     '''
     Get API user file's placeholder items \n
-    :param current_user: include received access token in headers in request \n
-    (example: headers = {"Authorization": "Bearer <your_access_token>"})(required) \n
+    :param current_user: include received access token in request's header (required) \n
+    (example: headers = {"Authorization": "Bearer <your_access_token>"}) \n
     :param file: template file (necessarily .docx)(required) \n
     :return: dictionary of placeholder items in json \n
     '''
@@ -74,11 +74,12 @@ async def process_data(
 ):
     '''
     Process API user file with filled placeholder items \n
-    :param filename: transformed file's name \n
+    :param filename: template file's name (required) \n
+    :param data: filled dictionary of placeholder items in json (required) \n
+    (example: {"keys": {"tag1": "1", ...}, "tables": {"table1": [{"name column": "item", ...}, ...]}})\n
+    :param current_user: include received access token in request's header (required) \n
+    (example: headers = {"Authorization": "Bearer <your_access_token>"}) \n
     :param newfilename: new name of output file \n
-    :param data: filled dictionary of placeholder items in json \n
-    :param current_user: include received access token in headers in request \n
-    (example: headers = {"Authorization": "Bearer <your_access_token>"})(required) \n
     :return: file (.pdf) \n
     '''
     filename = {"filename": filename,
@@ -116,10 +117,11 @@ async def process_data(
 ):
     '''
     Process API user file with filled placeholder items \n
-    :param filename: transformed file's name \n
-    :param data: filled dictionary of placeholder items in json \n
-    :param current_user: include received access token in headers in request \n
-    (example: headers = {"Authorization": "Bearer <your_access_token>"})(required) \n
+    :param filename: template file's name (required) \n
+    :param data: filled dictionary of placeholder items in json (required) \n
+    :param current_user: include received access token in request's header (required) \n
+    :param newfilename: new name of output file \n
+    (example: headers = {"Authorization": "Bearer <your_access_token>"}) \n
     :return: link to file (.pdf) \n
     '''
     filename = {"filename": filename,
@@ -154,6 +156,11 @@ async def process_data(
 @router.get("/templates")
 async def templates_list(response: Response,
                          current_user: Annotated[dict, Depends(get_current_user_api)]):
+    '''
+    Get user template's list \n
+    :param current_user: include received access token in request's header (required) \n
+    :return: list of templates \n
+    '''
     username = current_user["nickname"]
     user = {"username": username}
     async with aiohttp.ClientSession() as session:
@@ -177,6 +184,12 @@ async def delete_template(
     filename: str,
     current_user: Annotated[dict, Depends(get_current_user_api)]
 ):
+    '''
+    Delete shown template \n
+    :param filename: template file's name (required) \n
+    :param current_user: include received access token in request's header (required) \n
+    :return: response status of deleting template \n
+    '''
     username = current_user["nickname"]
     del_list = {"username": username,
                 "templatename": filename}
@@ -200,6 +213,14 @@ async def debit(
         current_user: Annotated[dict, Depends(get_current_user_api)],
         unlimited: int = 0,
 ):
+    '''
+    Refill user's balance or give unlimited \n
+    :param telegram_id: insert user's telegram ID (example: 808652971) (required) \n
+    :param amount: insert amount of money to refill user's balance (required) \n
+    :param current_user: include received access token in request's header (required) \n
+    :param unlimited: insert: 0 - unlimited deactivate; 1 - unlimited activate \n
+    :return: response status after refilling balance or unlimited activate \n
+    '''
     async with aiohttp.ClientSession() as session:
         try:
             if current_user["role"] != "admin":
@@ -222,6 +243,11 @@ async def debit(
 async def transaction_list(
         response: Response,
         current_user: Annotated[dict, Depends(get_current_user_api)]):
+    '''
+    Get user transaction's list \n
+    :param current_user: include received access token in request's header (required) \n
+    :return: list of dictionaries with transaction's record \n
+    '''
     username = current_user["nickname"]
     user = {"username": username}
     async with aiohttp.ClientSession() as session:
@@ -245,6 +271,11 @@ async def transaction_list_excel(
         response: Response,
         current_user: Annotated[dict, Depends(get_current_user_api)]
 ):
+    '''
+    Get user transaction's table in excel \n
+    :param current_user: include received access token in request's header (required) \n
+    :return: transaction's table in excel \n
+    '''
     username = current_user["nickname"]
     user = {"username": username}
     async with aiohttp.ClientSession() as session:
@@ -282,7 +313,12 @@ async def refresh_password(
         current_user: Annotated[dict, Depends(get_current_user_api)],
         new_password: str
 ):
-
+    '''
+    Change user's password \n
+    :param current_user: include received access token in request's header (required) \n
+    :param new_password: insert new password (required) \n
+    :return: response of reset password \n
+    '''
     username = current_user["nickname"]
     user = {"username": username,
             "new_password": new_password}

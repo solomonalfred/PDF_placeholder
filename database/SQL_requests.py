@@ -293,13 +293,9 @@ async def transaction_debit(session: AsyncSession,
                             user_id: int,
                             amount: Decimal,
                             unlimited: bool = False) -> bool:
-
-    # Находим последнюю транзакцию пользователя
     last_transaction_stmt = select(transaction).where(transaction.c.user_id == user_id).order_by(transaction.c.created_at.desc()).limit(1)
     last_transaction_result = await session.execute(last_transaction_stmt)
     last_transaction = last_transaction_result.one_or_none()
-
-    # Находим текущий баланс пользователя
     user_stmt = select(user.c.balance, user.c.unlimited).where(user.c.id == user_id)
     user_result = await session.execute(user_stmt)
     current_user_balance = user_result.one_or_none()
@@ -348,21 +344,15 @@ async def add_or_update_pdf_file(session: AsyncSession,
                                  user_id: int,
                                  page_processed: int,
                                  docx_file_name: str) -> bool:
-
-    # Проверка наличия записи в pdf_files
     pdf_file_stmt = select(pdf_file).where(pdf_file.c.name == name, pdf_file.c.user_id == user_id)
     pdf_file_result = await session.execute(pdf_file_stmt)
     pdf_file_record = pdf_file_result.one_or_none()
-
-    # Получение ID файла DOCX
     docx_file_stmt = select(docx_file.c.id).\
         where(docx_file.c.name == docx_file_name,
               docx_file.c.user_id == user_id,
               docx_file.c.deleted == False)
     docx_file_result = await session.execute(docx_file_stmt)
     docx_file_id = docx_file_result.scalar_one()
-
-    # Выполнение транзакции
     transaction_success = await transaction_credit(session,
                                                    user_id,
                                                    name,

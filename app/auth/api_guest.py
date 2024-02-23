@@ -64,7 +64,8 @@ async def sign_in(
     Get API user's access token \n
     :param username: insert username (example: user_first) (required) \n
     :param password: insert password (example: 12345) (required) \n
-    :return: \n
+    :return: token and token type for use user's requests \n
+    (example: {'access_token': 'eyJhbGc...', 'token_type': 'Bearer'})\n
     '''
     data = {
         "username": form_data.username,
@@ -93,6 +94,12 @@ async def extra_token(
         response: Response,
         telegram_id: str = Form(...)
 ):
+    '''
+    Get extra token to reset user's password (timelimit 5 minutes) \n
+    :param telegram_id: insert user's telegram ID (example: 808652971)\n
+    :return: extra token and token type for use user's requests \n
+    (example: {'access_token': 'eyJhbGc...', 'token_type': 'Bearer'})\n
+    '''
     data = {"telegram_id": telegram_id}
     response.status_code = 201
     async with aiohttp.ClientSession() as session:
