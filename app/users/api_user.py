@@ -120,6 +120,7 @@ async def process_data(
     :param filename: template file's name (required) \n
     :param data: filled dictionary of placeholder items in json (required) \n
     :param current_user: include received access token in request's header (required) \n
+    (example: headers = {"Authorization": "Bearer <your_access_token>"}) \n
     :param newfilename: new name of output file \n
     (example: headers = {"Authorization": "Bearer <your_access_token>"}) \n
     :return: link to file (.pdf) \n
@@ -159,6 +160,7 @@ async def templates_list(response: Response,
     '''
     Get user template's list \n
     :param current_user: include received access token in request's header (required) \n
+    (example: headers = {"Authorization": "Bearer <your_access_token>"}) \n
     :return: list of templates \n
     '''
     username = current_user["nickname"]
@@ -188,6 +190,7 @@ async def delete_template(
     Delete shown template \n
     :param filename: template file's name (required) \n
     :param current_user: include received access token in request's header (required) \n
+    (example: headers = {"Authorization": "Bearer <your_access_token>"}) \n
     :return: response status of deleting template \n
     '''
     username = current_user["nickname"]
@@ -218,6 +221,7 @@ async def debit(
     :param telegram_id: insert user's telegram ID (example: 808652971) (required) \n
     :param amount: insert amount of money to refill user's balance (required) \n
     :param current_user: include received access token in request's header (required) \n
+    (example: headers = {"Authorization": "Bearer <your_access_token>"}) \n
     :param unlimited: insert: 0 - unlimited deactivate; 1 - unlimited activate \n
     :return: response status after refilling balance or unlimited activate \n
     '''
@@ -246,6 +250,7 @@ async def transaction_list(
     '''
     Get user transaction's list \n
     :param current_user: include received access token in request's header (required) \n
+    (example: headers = {"Authorization": "Bearer <your_access_token>"}) \n
     :return: list of dictionaries with transaction's record \n
     '''
     username = current_user["nickname"]
@@ -274,6 +279,7 @@ async def transaction_list_excel(
     '''
     Get user transaction's table in excel \n
     :param current_user: include received access token in request's header (required) \n
+    (example: headers = {"Authorization": "Bearer <your_access_token>"}) \n
     :return: transaction's table in excel \n
     '''
     username = current_user["nickname"]
@@ -316,6 +322,7 @@ async def refresh_password(
     '''
     Change user's password \n
     :param current_user: include received access token in request's header (required) \n
+    (example: headers = {"Authorization": "Bearer <your_access_token>"}) \n
     :param new_password: insert new password (required) \n
     :return: response of reset password \n
     '''
