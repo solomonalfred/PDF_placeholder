@@ -34,9 +34,12 @@ async def upload_docx(
     :param file: template file (necessarily .docx)(required) \n
     :return: dictionary of placeholder items in json \n
     '''
-
-    file_path = save_file(current_user["nickname"], file)
-    file_size = os.path.getsize(file_path)
+    try:
+        file_path = save_file(current_user["nickname"], file)
+        file_size = os.path.getsize(file_path)
+    except:
+        response.status_code = 500
+        return {"msg": "Internal server error"}
     user_id = current_user["id"]
     async with aiohttp.ClientSession() as session:
         server = next(server_iterator)
@@ -59,7 +62,7 @@ async def upload_docx(
                                                  "tables": data_tb})
                 else:
                     response.status_code = 400
-                    return {"status": "Bad request"}
+                    return {"status": "Wrong document format"}
         except:
             response.status_code = 500
             return {"msg": "Internal server error"}
@@ -98,6 +101,10 @@ async def process_data(
                     if res["response"] == "Template deleted":
                         response.status_code = 401
                         return {"status": "Bad request. Template do not exist"}
+                    newfilename = newfilename.replace('.pdf', '').replace('.docx', '')
+                    if res["response"].find(newfilename) == -1:
+                        response.status_code = 500
+                        return {"msg": "Internal server error"}
                     return FileResponse(res["response"], filename=f"{newfilename}.pdf")
                 else:
                     response.status_code = 401
@@ -142,6 +149,10 @@ async def process_data(
                     if res["response"] == "Template deleted":
                         response.status_code = 401
                         return {"status": "Bad request. Template do not exist"}
+                    newfilename = newfilename.replace('.pdf', '').replace('.docx', '')
+                    if res["response"].find(newfilename) == -1:
+                        response.status_code = 500
+                        return {"msg": "Internal server error"}
                     filler = res["response"]
                     url = f"{SERVER_URL}/link/file?" \
                           f"{urlencode({'filename': Path(filler).name, 'username': current_user['nickname']})}"
@@ -219,7 +230,7 @@ async def debit(
     '''
     Refill user's balance or give unlimited \n
     :param telegram_id: insert user's telegram ID (example: 808652971) (required) \n
-    :param amount: insert amount of money to refill user's balance (required) \n
+    :param amount: insert amount of money to refill user's balance (must be more than 0)(required) \n
     :param current_user: include received access token in request's header (required) \n
     (example: headers = {"Authorization": "Bearer <your_access_token>"}) \n
     :param unlimited: insert: 0 - unlimited deactivate; 1 - unlimited activate \n
@@ -228,8 +239,8 @@ async def debit(
     async with aiohttp.ClientSession() as session:
         try:
             if current_user["role"] != "admin":
-                response.status_code = 401
-                return {"msg": "Unauthorized"}
+                response.status_code = 403
+                return {"msg": "Access denied"}
             response.status_code = 200
             data = {"telegram_id": telegram_id,
                     "amount": amount,
@@ -239,8 +250,8 @@ async def debit(
                 res = await resp.json()
                 return JSONResponse(content=res)
         except:
-            response.status_code = 401
-            return {"msg": "Unauthorized"}
+            response.status_code = 500
+            return {"msg": "Internal server error"}
 
 
 @router.get("/transactions")

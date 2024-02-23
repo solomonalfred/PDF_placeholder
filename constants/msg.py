@@ -8,5 +8,5 @@ class ErrorType:
     missing_doc = 3
 
 ERROR_MSG = {1: "Incorrect file",
-             2: "Internal error",
+             2: "Internal server error",
              3: "Missing file"}

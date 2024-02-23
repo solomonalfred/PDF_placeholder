@@ -74,14 +74,6 @@ async def sign_in(
     async with aiohttp.ClientSession() as session:
         server = next(server_iterator)
         async with session.post(f"{server}/access_token", data=data) as resp:
-            async with get_async_session() as session:
-                await add_user_if_not_exists(session,
-                                             "admin",
-                                             "admin",
-                                             "nik_bogdanov2002@mail.ru",
-                                             "80865296a",
-                                             hashed.hash_password(ADMIN),
-                                             "admin")
             if resp.status == 201:
                 response.status_code = 201
             else:
