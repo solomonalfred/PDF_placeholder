@@ -12,7 +12,7 @@ from auth import api_guest
 from users import user
 from users import api_user
 from links import link
-from app.dependencies.sypher import PasswordManager
+from app.dependencies.hasher import PasswordManager
 
 app = FastAPI(
     title=PDF_DOCUMENTATION.TITLE,
@@ -22,9 +22,9 @@ app = FastAPI(
 
 templates = Jinja2Templates(directory="../templates")
 hashed = PasswordManager()
-app.include_router(guest.router)
+# app.include_router(guest.router)
 app.include_router(api_guest.router)
-app.include_router(user.router)
+# app.include_router(user.router)
 app.include_router(api_user.router)
 app.include_router(link.router)
 

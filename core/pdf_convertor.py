@@ -2,6 +2,7 @@ import subprocess
 import os
 from constants.variables import *
 from constants.msg import ErrorType
+from constants.core_items import *
 from core.error_block import ErrorBlocker
 
 
@@ -16,20 +17,17 @@ class Convert2PDF:
         self.username = username
 
     def DocxToPdf(self):
-        directory = FILE_FOLDER + "volumes/" + self.username
+        directory = os.path.join(FILE_FOLDER, self.username)
         if os.path.isdir(directory) == False:
             return ErrorBlocker().process(ErrorType.missing_doc)
-        subprocess.call(['/usr/bin/soffice',
-                         '--headless',
-                         '--convert-to',
-                         'pdf',
-                         '--outdir',
-                         directory,
-                         self.file])
-        os.remove(self.file)
-        old = self.file.replace('_new.docx', '_new.pdf')
-        new = directory + '/' + self.new + '.pdf'
-        subprocess.call(['mv', old, new])
+        convert = PDF_CONVERT
+        convert[5] = directory
+        convert[6] = self.file
+        subprocess.call(convert)
+        # os.remove(self.file)
+        old = self.file.replace(Process_items.NEW_DOCX, PDF_items.PDF_TMP)
+        new = os.path.join(directory, self.new + PDF_items.PDF)
+        subprocess.call([PDF_items.MOVE, old, new])
         if os.path.exists(new):
             return new
         return ErrorBlocker().process(ErrorType.missing_doc)

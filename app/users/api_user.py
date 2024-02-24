@@ -2,11 +2,10 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse, FileResponse, Response
 from pathlib import Path
 from typing import Dict
-import pandas as pd
-from io import BytesIO
 from app.dependencies.oauth2_api import *
 from app.modules.user_modules import *
 from app.config import *
+from constants.api_items import *
 from urllib.parse import urlencode
 import itertools
 import aiohttp
@@ -15,11 +14,12 @@ router = APIRouter(
     prefix="/api_user",
     tags=["api_user"],
     dependencies=[Depends(get_current_user_api)],
-    responses={"404": {"msg": "Credentials exception"}}
+    responses={"404": {msg.MSG: msg.CREDENTIAL_EXEPTION}}
 )
 
 database = DBManager("PDF_placeholder", "users")
 server_iterator = itertools.cycle(servers)
+
 
 @router.post("/keys")
 async def upload_docx(
@@ -35,16 +35,16 @@ async def upload_docx(
     :return: dictionary of placeholder items in json \n
     '''
     try:
-        file_path = save_file(current_user["nickname"], file)
+        file_path = save_file(current_user[Table_items.NICKNAME], file)
         file_size = os.path.getsize(file_path)
     except:
         response.status_code = 500
-        return {"msg": "Internal server error"}
-    user_id = current_user["id"]
+        return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
+    user_id = current_user[Table_items.ID]
     async with aiohttp.ClientSession() as session:
         server = next(server_iterator)
         try:
-            async with session.get(f"{server}/tags", params={'path': file_path}) as resp:
+            async with session.get(server_path.KEYS.format(server), params={Table_items.PATH: file_path}) as resp:
                 if resp.status == 200:
                     response.status_code = 200
                     res = await resp.json()
@@ -54,18 +54,14 @@ async def upload_docx(
                                                                     file_path,
                                                                     file_size,
                                                                     user_id)
-                    data_tags = dict_tags(res["response"][0])
-                    data_tb = dict_tags(res["response"][1])
-                    return JSONResponse(content={"count_tags": len(data_tags.keys()),
-                                                 "count_tables": len(data_tb.keys()),
-                                                 "keys": data_tags,
-                                                 "tables": data_tb})
+                    return JSONResponse(content=keys_response(res))
                 else:
                     response.status_code = 400
-                    return {"status": "Wrong document format"}
+                    return {msg.MSG: msg.WRONG_DOCUMENT_FORMAT}
         except:
             response.status_code = 500
-            return {"msg": "Internal server error"}
+            return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
+
 
 @router.post("/render", response_class=FileResponse)
 async def process_data(
@@ -85,34 +81,29 @@ async def process_data(
     :param newfilename: new name of output file \n
     :return: file (.pdf) \n
     '''
-    filename = {"filename": filename,
-                "newfilename": newfilename,
-                "username": current_user["nickname"]}
+    filename = {Details.FILENAME: filename,
+                Details.NEW_FILENAME: newfilename,
+                Details.USERNAME: current_user[Table_items.NICKNAME]}
     async with aiohttp.ClientSession() as session:
         server = next(server_iterator)
         try:
-            async with session.get(f"{server}/process", params=filename, json=data) as resp:
+            async with session.get(server_path.RENDER.format(server), params=filename, json=data) as resp:
                 if resp.status == 200:
                     response.status_code = 200
                     res = await resp.json()
-                    if res["response"] == "Insufficient funds":
-                        response.status_code = 402
-                        return {"status": "Insufficient funds"}
-                    if res["response"] == "Template deleted":
-                        response.status_code = 401
-                        return {"status": "Bad request. Template do not exist"}
+                    result = error_response_render(res, newfilename)
+                    if result[0] != 200:
+                        response.status_code = result[0]
+                        return result[1]
                     newfilename = newfilename.replace('.pdf', '').replace('.docx', '')
-                    if res["response"].find(newfilename) == -1:
-                        response.status_code = 500
-                        return {"msg": "Internal server error"}
-                    return FileResponse(res["response"], filename=f"{newfilename}.pdf")
+                    return FileResponse(res[Details.RESPONCE], filename=f"{newfilename}.pdf")
                 else:
-                    response.status_code = 401
-                    res = await resp.json()
-                    return {"status": "Bad request. Template do not exist"}
+                    response.status_code = 400
+                    return {msg.MSG: msg.TEMPLATE_NOT_EXISTS}
         except:
             response.status_code = 500
-            return {"msg": "Internal server error"}
+            return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
+
 
 @router.post("/render_link")
 async def process_data(
@@ -132,38 +123,35 @@ async def process_data(
     (example: headers = {"Authorization": "Bearer <your_access_token>"}) \n
     :return: link to file (.pdf) \n
     '''
-    filename = {"filename": filename,
-                "newfilename": newfilename,
-                "username": current_user["nickname"]}
+    filename = {Details.FILENAME: filename,
+                Details.NEW_FILENAME: newfilename,
+                Details.USERNAME: current_user[Table_items.NICKNAME]}
     async with aiohttp.ClientSession() as session:
         server = next(server_iterator)
         try:
-            async with session.get(f"{server}/process", params=filename, json=data) as resp:
-                result = {}
+            async with session.get(server_path.RENDER_LINK.format(server), params=filename, json=data) as resp:
                 if resp.status == 200:
                     response.status_code = 200
                     res = await resp.json()
-                    if res["response"] == "Insufficient funds":
-                        response.status_code = 402
-                        return {"status": "Insufficient funds"}
-                    if res["response"] == "Template deleted":
-                        response.status_code = 401
-                        return {"status": "Bad request. Template do not exist"}
-                    newfilename = newfilename.replace('.pdf', '').replace('.docx', '')
-                    if res["response"].find(newfilename) == -1:
-                        response.status_code = 500
-                        return {"msg": "Internal server error"}
-                    filler = res["response"]
-                    url = f"{SERVER_URL}/link/file?" \
-                          f"{urlencode({'filename': Path(filler).name, 'username': current_user['nickname']})}"
-                    result = {"url": url}
+                    result = error_response_render(res, newfilename)
+                    if result[0] != 200:
+                        response.status_code = result[0]
+                        return result[1]
+                    filler = res[Details.RESPONCE]
+                    url = LINK_URL.format(SERVER_URL,
+                                          urlencode(
+                                              {Details.FILENAME: Path(filler).name,
+                                               Details.USERNAME: current_user[Table_items.NICKNAME]}
+                                          ))
+                    result = {Details.URL: url}
                 else:
                     response.status_code = 401
-                    return {"status": "Bad request. Template do not exist"}
+                    return {msg.MSG: msg.TEMPLATE_NOT_EXISTS}
                 return JSONResponse(content=result)
         except:
             response.status_code = 500
-            return {"msg": "Internal server error"}
+            return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
+
 
 @router.get("/templates")
 async def templates_list(response: Response,
@@ -174,22 +162,23 @@ async def templates_list(response: Response,
     (example: headers = {"Authorization": "Bearer <your_access_token>"}) \n
     :return: list of templates \n
     '''
-    username = current_user["nickname"]
+    username = current_user[Table_items.NICKNAME]
     user = {"username": username}
     async with aiohttp.ClientSession() as session:
         server = next(server_iterator)
         try:
-            async with session.get(f"{server}/list_templates", params=user) as resp:
+            async with session.get(server_path.TEMPLATES.format(server), params=user) as resp:
                 if resp.status == 200:
                     response.status_code = 200
                     res = await resp.json()
                     return JSONResponse(content=res)
                 else:
                     response.status_code = 500
-                    return {"msg": "Internal server error"}
+                    return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
         except:
             response.status_code = 500
-            return {"msg": "Internal server error"}
+            return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
+
 
 @router.delete("/delete_template")
 async def delete_template(
@@ -204,20 +193,23 @@ async def delete_template(
     (example: headers = {"Authorization": "Bearer <your_access_token>"}) \n
     :return: response status of deleting template \n
     '''
-    username = current_user["nickname"]
-    del_list = {"username": username,
-                "templatename": filename}
+    username = current_user[Table_items.NICKNAME]
+    del_list = {Details.USERNAME: username,
+                Details.TEMPLATENAME: filename}
     async with aiohttp.ClientSession() as session:
         server = next(server_iterator)
         try:
-            async with session.delete(f"{server}/delete_template", params=del_list) as resp:
-                response.status_code = 200
-                res = await resp.json()
-                response.status_code = resp.status
-                return {"msg": 'Deleted'}
+            async with session.delete(server_path.DELETE.format(server), params=del_list) as resp:
+                if resp.status == 200:
+                    response.status_code = resp.status
+                    return {msg.MSG: msg.DELETED}
+                else:
+                    response.status_code = 400
+                    return {msg.MSG: msg.NOT_FOUND}
         except:
-            response.status_code = 401
-            return {"msg": "Item not found"}
+            response.status_code = 400
+            return {msg.MSG: msg.NOT_FOUND}
+
 
 @router.post("/topup_user")
 async def debit(
@@ -238,20 +230,20 @@ async def debit(
     '''
     async with aiohttp.ClientSession() as session:
         try:
-            if current_user["role"] != "admin":
+            if current_user[Details.ROLE] != Details.ADMIN:
                 response.status_code = 403
-                return {"msg": "Access denied"}
+                return {msg.MSG: msg.ACCESS_DENIED}
             response.status_code = 200
-            data = {"telegram_id": telegram_id,
-                    "amount": amount,
-                    "unlimited": unlimited}
+            data = {Details.TELEGRAM_ID: telegram_id,
+                    Details.AMOUNT: amount,
+                    Details.UNLIMITED: unlimited}
             server = next(server_iterator)
-            async with session.post(f"{server}/replenishment_balance", params=data) as resp:
+            async with session.post(server_path.BALANCE.format(server), params=data) as resp:
                 res = await resp.json()
                 return JSONResponse(content=res)
         except:
             response.status_code = 500
-            return {"msg": "Internal server error"}
+            return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
 
 
 @router.get("/transactions")
@@ -264,22 +256,22 @@ async def transaction_list(
     (example: headers = {"Authorization": "Bearer <your_access_token>"}) \n
     :return: list of dictionaries with transaction's record \n
     '''
-    username = current_user["nickname"]
-    user = {"username": username}
+    username = current_user[Table_items.NICKNAME]
+    user = {Details.USERNAME: username}
     async with aiohttp.ClientSession() as session:
         server = next(server_iterator)
         try:
-            async with session.get(f"{server}/transaction_list", params=user) as resp:
+            async with session.get(server_path.TRANSACTIONS.format(server), params=user) as resp:
                 if resp.status == 200:
                     response.status_code = 200
                     res = await resp.json()
                     return JSONResponse(content=res)
                 else:
                     response.status_code = 500
-                    return {"msg": "Internal server error"}
+                    return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
         except:
             response.status_code = 500
-            return {"msg": "Internal server error"}
+            return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
 
 
 @router.get("/transactions_export")
@@ -293,35 +285,25 @@ async def transaction_list_excel(
     (example: headers = {"Authorization": "Bearer <your_access_token>"}) \n
     :return: transaction's table in excel \n
     '''
-    username = current_user["nickname"]
-    user = {"username": username}
+    username = current_user[Table_items.NICKNAME]
+    user = {Details.USERNAME: username}
     async with aiohttp.ClientSession() as session:
         server = next(server_iterator)
         try:
-            async with session.get(f"{server}/transaction_list", params=user) as resp:
+            async with session.get(server_path.TRANSACTIONS.format(server), params=user) as resp:
                 if resp.status == 200:
                     response.status_code = 200
                     res = await resp.json()
-                    df = pd.DataFrame(res["transactions"])
-                    output = BytesIO()
-                    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                        df.to_excel(writer, sheet_name='Лист1', index=False)
-                        workbook = writer.book
-                        worksheet = writer.sheets['Лист1']
-                        header_format = workbook.add_format({'bold': True})
-                        for col_num, value in enumerate(df.columns.values):
-                            worksheet.write(0, col_num, value, header_format)
-                        writer._save()
-                    output.seek(0)
+                    output = temp_excel_builder(res)
                     return Response(content=output.read(),
-                                    media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                    headers={"Content-Disposition": "attachment; filename=report.xlsx"})
+                                    media_type=Excel_items.MEDIA_TYPE,
+                                    headers={Excel_items.HEADER_RESPONCE_KEY: Excel_items.HEADER_RESPONCE_VALUE})
                 else:
                     response.status_code = 500
-                    return {"msg": "Internal server error"}
+                    return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
         except:
             response.status_code = 500
-            return {"msg": "Internal server error"}
+            return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
 
 
 @router.post("/reset_password")
@@ -337,21 +319,21 @@ async def refresh_password(
     :param new_password: insert new password (required) \n
     :return: response of reset password \n
     '''
-    username = current_user["nickname"]
-    user = {"username": username,
-            "new_password": new_password}
+    username = current_user[Table_items.NICKNAME]
+    user = {Details.USERNAME: username,
+            Details.NEW_PASSWORD: new_password}
     async with aiohttp.ClientSession() as session:
         server = next(server_iterator)
         try:
-            async with session.post(f"{server}/refresh_password", params=user) as resp:
+            async with session.post(server_path.PASSWORD.format(server), params=user) as resp:
                 if resp.status == 200:
                     response.status_code = 200
                     res = await resp.json()
                     return JSONResponse(content=res)
                 else:
                     response.status_code = 500
-                    return {"msg": "Internal server error"}
+                    return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
         except:
             response.status_code = 500
-            return {"msg": "Internal server error"}
+            return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
 

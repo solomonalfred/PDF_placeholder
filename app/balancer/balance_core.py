@@ -1,17 +1,16 @@
 from fastapi import FastAPI, Form
 from fastapi.responses import JSONResponse, Response
 from fastapi.security import OAuth2PasswordRequestForm
-from pathlib import Path
 from typing import Dict
 import sys
 import os
 import uvicorn
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from app.dependencies.oauth2 import *
-from core.core_object import Core
 from app.modules.user_modules import *
 from app.modules.user_directories import *
 from database.SQL_requests import *
+from constants.variables import *
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 30 * 12
 
@@ -102,17 +101,17 @@ async def delete_template(
 ):
     async with get_async_session() as session:
         user_data = await find_user_by_nickname(session, username)
-        delete_path_ = await find_docx_file(session, user_data["id"], templatename)
+        delete_path_ = await find_docx_file(session, user_data[Table_items.ID], templatename)
         response.status_code = 404
-        if delete_path_ is not None and delete_path_["deleted"] != True:
-            delete_path = delete_path_["path"]
+        if delete_path_ is not None and not delete_path_[Table_items.DELETED]:
+            delete_path = delete_path_[Table_items.PATH]
             os.remove(delete_path)
-            result = await delete_docx_file(session,
-                                            user_data["id"],
-                                            templatename)
-            response.status_code = 201
-            return JSONResponse(content={"msg": 'Template deleted'})
-        return JSONResponse(content={"msg": "There's no this template"})
+            await delete_docx_file(session,
+                                   user_data[Table_items.ID],
+                                   templatename)
+            response.status_code = 200
+            return JSONResponse(content={msg.MSG: msg.TP_DELETED})
+        return JSONResponse(content={msg.MSG: msg.NO_TP})
 
 
 @app.get("/list_templates")
@@ -120,59 +119,45 @@ async def list_templates(response: Response, username: str):
     try:
         async with get_async_session() as session:
             user_data = await find_user_by_nickname(session, username)
-            templates = await find_docx_files(session, user_data["id"])
-            return {"templates": templates}
+            templates = await find_docx_files(session, user_data[Table_items.ID])
+            return {msg.TEMPLATES: templates}
     except:
         response.status_code = 401
-        return {"templates": []}
+        return {msg.TEMPLATES: []}
 
 
 @app.get("/tags")
 async def tags(path: str):
     tags = get_tags(path)
-    return {"response": tags}
+    return {Details.RESPONCE: tags}
 
 
 @app.get("/process")
 async def process(response: Response,
                   filename: str,
-                  newfilename: str,
                   username: str,
-                  data: Dict):
+                  data: Dict,
+                  newfilename: str = ""):
     async with get_async_session() as session:
         response.status_code = 200
         user = await find_user_by_nickname(session, username)
-        file_path = await find_docx_file(session, user["id"], filename)
-        if file_path is None:
-            response.status_code = 401
-            return {"response": "Template deleted"}
-        if file_path["deleted"]:
-            response.status_code = 401
-            return {"response": "Template deleted"}
-        file_path = file_path["path"]
-        if len(newfilename) == 0:
-            newfilename = filename
-        newfilename = newfilename.replace('.pdf', '').replace('.docx', '')
-        filler = Core(username, file_path, newfilename, data).process()
-        result = True
-        if filler.find(newfilename) == -1:
-            response.status_code = 401
-            result = False
-        else:
-            file = Path(filler).name
-            file_size = os.path.getsize(filler)
-            count = count_pages(filler)
-            result = await add_or_update_pdf_file(session,
-                                                  file,
-                                                  file_size,
-                                                  filler,
-                                                  user["id"],
-                                                  count,
-                                                  filename)
+        file_path = await find_docx_file(session, user[Table_items.ID], filename)
+        resp = balancer_process_response(file_path, newfilename, filename, username, data)
+        if not resp[0]:
+            response.status_code = resp[1]
+            return resp[2]
+        result = await add_or_update_pdf_file(session,
+                                              resp[2][Details.RESPONCE][0],
+                                              resp[2][Details.RESPONCE][1],
+                                              resp[2][Details.RESPONCE][3],
+                                              user[Table_items.ID],
+                                              resp[2][Details.RESPONCE][2],
+                                              filename)
         if result:
-            return {"response": filler}
+            return {Details.RESPONCE: resp[2][Details.RESPONCE][3]}
         else:
-            return {"response": "Insufficient funds"}
+            return {Details.RESPONCE: msg.INSUFFICIENT_FUNDS}
+
 
 @app.post("/replenishment_balance")
 async def debit(
@@ -182,10 +167,11 @@ async def debit(
 ):
     async with get_async_session() as session:
         user = await find_user_by_telegram(session, telegram_id)
-        deb = await transaction_debit(session, user["id"], Decimal(amount), bool(unlimited))
+        deb = await transaction_debit(session, user[Table_items.ID], Decimal(amount), bool(unlimited))
     if unlimited:
-        return {"balance": deb, "rate": "Unlimited"}
-    return {"balance": deb, "rate": "Common"}
+        return {msg.BALANCE: deb, Details.RATE: Details.UNLIMITED}
+    return {msg.BALANCE: deb, Details.RATE: Details.COMMON}
+
 
 @app.get("/transaction_list")
 async def transaction_list(
@@ -194,31 +180,18 @@ async def transaction_list(
     try:
         async with get_async_session() as session:
             user = await find_user_by_nickname(session, username)
-            list = await transaction_list_(session, user["id"])
+            list = await transaction_list_(session, user[Table_items.ID])
             result = []
             for tmp in list:
-                t = {}
-                t["type"] = tmp['type']
-                t["balance"] = tmp['balance']
-                if tmp['unlimited']:
-                    t["amount"] = "unlimited"
-                else:
-                    t["amount"] = tmp["amount"]
-                if t["type"] == "credit":
-                    t["file"] = tmp["file"]
-                    t["template"] = await find_docx_file_by_id(session,
-                                                               user["id"],
-                                                               tmp["template"])
-                    t["page_processed"] = tmp["page_processed"]
-                else:
-                    t["file"] = "-"
-                    t["template"] = "-"
-                    t["page_processed"] = "-"
-                t["created_at"] = tmp["created_at"]
-                result.append(t)
-            return {"transactions": result}
+                res = balancer_transaction_fill_record(tmp)
+                if tmp[Table_items.TYPE] == Details.CREDIT:
+                    res[Table_items.TEMPLATE] = await find_docx_file_by_id(session,
+                                                                           user[Table_items.ID],
+                                                                           tmp[Table_items.TEMPLATE])
+                result.append(res)
+            return {Details.TRANSACTIONS: result}
     except:
-        return {"transactions": []}
+        return {Details.TRANSACTIONS: []}
 
 
 @app.post("/refresh_password")
@@ -231,19 +204,18 @@ async def refresh_password(
     async with get_async_session() as session:
         user = await find_user_by_nickname(session, username)
         renew_pass = await update_user(session,
-                                       user["name"],
-                                       user["nickname"],
-                                       user["email"],
-                                       user["telegramID"],
+                                       user[Table_items.NAME],
+                                       user[Table_items.NICKNAME],
+                                       user[Table_items.EMAIL],
+                                       user[Table_items.TELEGRAM_ID],
                                        hashed.hash_password(new_password),
-                                       user["role"],
-                                       user["balance"],
-                                       user["unlimited"],
-                                       )
+                                       user[Table_items.ROLE],
+                                       user[Table_items.BALANCE],
+                                       user[Table_items.UNLIMITED])
         if renew_pass:
-            return {"msg": "Success refreshed password"}
+            return {msg.MSG: msg.SUCCESS_REFRESH}
         response.status_code = 401
-        return {"msg": "Internal server error"}
+        return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
 
 
 if __name__ == "__main__":

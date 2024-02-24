@@ -8,7 +8,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from database.mongo_manager import DBManager
-from app.dependencies.sypher import PasswordManager
+from app.dependencies.hasher import PasswordManager
 from database.SQL_requests import *
 from configurations import SECRET_KEY, ALGORITHM
 
