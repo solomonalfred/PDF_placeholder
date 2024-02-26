@@ -5,6 +5,7 @@ from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from docx.shared import Inches
 from typing import Dict
 
 from docx.shared import Pt
@@ -63,40 +64,68 @@ class DocxTemplatePlaceholder:
                     self.__process(cell, tags)
 
     def __generate_table(self, tb, p, doc):
-        table_flag = False
         for regex, replace in tb.items():
             if regex.search(p.text):
-                table_flag = True
                 p.text = ''
-                num_columns = len(replace[0])
-                table = doc.add_table(rows=1, cols=num_columns)
-                hdr_cells = table.rows[0].cells
-                keys = list(replace[0].keys())
-                for i in range(num_columns):
-                    paragraph = hdr_cells[i].paragraphs[0]
-                    run = paragraph.add_run(keys[i].capitalize().replace('_', ' '))
-                    run.bold = True
-                    paragraph.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                for cell in hdr_cells:
-                    self.__set_cell_borders(cell, top=True, bottom=True, left=False, right=False)
-                for crypto in replace:
-                    row_cells = table.add_row().cells
-                    for idx, key in enumerate(keys):
-                        row_cells[idx].text = str(crypto[key])
-                        self.__set_cell_borders(row_cells[idx], top=True, bottom=True, left=False, right=False)
-                for row in table.rows:
-                    for cell in row.cells:
-                        for paragraph in cell.paragraphs:
-                            for run in paragraph.runs:
-                                run.font.size = Pt(10)
-                                cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
-                                self.__set_cell_borders(cell)
-                tbl_element = table._tbl
-                p_element = p._p
-                p_parent = p_element.getparent()
-                p_parent.insert(p_parent.index(p_element), tbl_element)
-                break
-        return table_flag
+                table = doc.add_table(rows=1, cols=len(replace[0]))
+                self.__fill_table(table, replace)
+                self.__insert_table_before_paragraph(table, p)
+                return True
+        return False
+
+    def __fill_table(self, table, data):
+        table.style = 'Table Grid'
+
+        hdr_cells = table.rows[0].cells
+        keys = list(data[0].keys())
+        for i, key in enumerate(keys):
+            hdr_cells[i].text = key.capitalize().replace('_', ' ')
+            hdr_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            hdr_cells[i].paragraphs[0].runs[0].font.bold = True
+            self.__set_cell_borders(hdr_cells[i])
+        for item in data:
+            row_cells = table.add_row().cells
+            for idx, key in enumerate(keys):
+                row_cells[idx].text = str(item[key])
+                self.__set_cell_borders(row_cells[idx])
+
+        self.__format_table_cells(table)
+        self.__set_column_widths(table)
+
+    def __set_column_widths(self, table):
+        for row in table.rows:
+            for cell in row.cells:
+                cell.width = Inches(1)
+
+    def __format_table_cells(self, table):
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    for run in paragraph.runs:
+                        run.font.size = Pt(10)
+                cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+
+    def __insert_table_before_paragraph(self, table, paragraph):
+        tbl_element = table._tbl
+        p_element = paragraph._p
+        p_parent = p_element.getparent()
+        p_parent.insert(p_parent.index(p_element), tbl_element)
+
+    def __set_cell_borders(self, cell, border_sz=4):
+        sides = [Table_items.TOP,
+                 Table_items.LEFT,
+                 Table_items.BOTTOM,
+                 Table_items.RIGHT]
+        for side in sides:
+            border_elm = OxmlElement(Table_items.OXML.format(side))
+            border_att = {
+                f'{qn(Table_items.VALUE)}': Table_items.SINGLE,
+                f'{qn(Table_items.SZ)}': str(border_sz),
+                f'{qn(Table_items.SPACE)}': Table_items.ZERO,
+                f'{qn(Table_items.COLOR)}': Table_items.AUTO,
+            }
+            border_elm.attrib.update(border_att)
+            cell._tc.get_or_add_tcPr().append(border_elm)
 
     def __placeholder_tags(self, inline, tags, flag):
         reg = ""
@@ -153,31 +182,6 @@ class DocxTemplatePlaceholder:
         for section in self.template_document.sections:
             self.__process(section.header, self.replace_tags)
             self.__process(section.footer, self.replace_tags)
-
-    def __set_cell_borders(self, cell, top=True, bottom=True, left=True, right=True):
-        sides = {'top': top, 'bottom': bottom, 'left': left, 'right': right}
-        for border in cell._tc.tcPr:
-            if border.tag.endswith('tcBorders'):
-                for side in border:
-                    side.attrib.clear()  # Удаляем все существующие границы
-                    side_val = 'single' if sides[side.tag.split('}')[
-                        -1]] else 'none'  # Устанавливаем тип границы в зависимости от указанных сторон
-                    side.attrib['val'] = side_val
-        # sides = [Table_items.TOP,
-    #                  Table_items.LEFT,
-    #                  Table_items.BOTTOM,
-    #                  Table_items.RIGHT]
-    #         for side in sides:
-    #             border_elm = OxmlElement(Table_items.OXML.format(side))
-    #             border_att = {
-    #                 f'{qn(Table_items.VALUE)}': Table_items.SINGLE,
-    #                 f'{qn(Table_items.SZ)}': str(border_sz),
-    #                 f'{qn(Table_items.SPACE)}': Table_items.ZERO,
-    #                 f'{qn(Table_items.COLOR)}': Table_items.AUTO,
-    #             }
-    #             border_elm.attrib.update(border_att)
-    #             cell._tc.get_or_add_tcPr().append(border_elm)
-
 
     def __prepare_tags(self, tags):
         done_tags = dict()

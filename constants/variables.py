@@ -1,4 +1,4 @@
 # prod: ../volumes
 # test: ..
 
-FILE_FOLDER = ".."
+FILE_FOLDER = "../volumes"
