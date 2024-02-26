@@ -2,7 +2,7 @@
 # host url: http://0.0.0.0:7777
 # prod url: https://api.pdfkabot.ru
 
-SERVER_URL = "http://0.0.0.0:7777"
+SERVER_URL = "https://api.pdfkabot.ru"
 
 
 servers = (
