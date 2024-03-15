@@ -8,7 +8,7 @@ import asyncio
 # host url: http://0.0.0.0:7777
 # prod url: https://api.pdfkabot.ru
 
-url_path = 'https://api.pdfkabot.ru'
+url_path = 'http://0.0.0.0:7777'
 
 def registration_with_API():
     url = f"{url_path}/api/signup"
@@ -36,7 +36,9 @@ def get_access_token():
     print(token)
     return {"Authorization": f"{token['token_type']} {token['access_token']}"}
 
+
 headers = get_access_token()
+
 
 def get_tags():
     url = f"{url_path}/api_user/keys"
@@ -132,10 +134,171 @@ def link_render():
     print(res.json())
 
 
+def request_in_series():
+    docs = ['Bible_God_mode.docx',
+            'footers.docx',
+            'pdf_test.docx',
+            'pdf_test_original.docx',
+            'report template.docx',
+            'test_both_near_tags.docx',
+            'test_file_keys.docx',
+            'test_near_tables.docx',
+            'test_some_tags_in_text.docx',
+            'test_strange_text.docx',
+            'test_table_in_other_places.docx',
+            'test_table_in_text.docx',
+            'test_tables_in_footers_headers.docx',
+            'test_tags_different_style.docx',
+            'typical.docx']
+
+    tags = []
+    print("Tags")
+    for file in docs:
+        url = f"{url_path}/api_user/keys"
+        files = {"file": open(f"test_files/{file}", "rb")}
+        start_time = time.time()
+        res = requests.post(url, files=files, headers=headers)
+        end_time = time.time()
+        print(f"{file}: {end_time - start_time}")
+        data = res.json()
+        for key in dict(data["keys"]).keys():
+            data["keys"][key] = "Solomon"
+        for key in dict(data["tables"]).keys():
+            data["tables"][key] = [
+            {
+                "name": "Bitcoin",
+                "symbol": "BTC",
+                "price_usd": 39857.20,
+                "price_eur": 34991.42,
+                "price_gbp": 29489.55
+            },
+            {
+                "name": "Ethereum",
+                "symbol": "ETH",
+                "price_usd": 2845.62,
+                "price_eur": 2498.75,
+                "price_gbp": 2104.89
+            },
+            {
+                "name": "Ripple",
+                "symbol": "XRP",
+                "price_usd": 0.84,
+                "price_eur": 0.74,
+                "price_gbp": 0.62
+            }]
+        tags.append(data)
+    print("\n\n\n\nLinks")
+    for file in range(len(docs)):
+        filename = {"filename": docs[file],
+                    "newfilename": docs[file].replace(".docx", '.pdf')}
+
+        url = f"{url_path}/api_user/render_link"
+        start_time = time.time()
+        res = requests.post(url, params=filename, json=tags[file], headers=headers)
+        end_time = time.time()
+        print(f"{file}: {end_time - start_time}")
+        print(res.json())
+
+
+def requests_in_parall():
+    url = f"{url_path}/api/access_token"
+    data = {
+        "username": "admin",
+        "password": "12345"
+    }
+    res = requests.post(url, data=data)
+    token_ = res.json()
+    headers_ = {"Authorization": f"{token_['token_type']} {token_['access_token']}"}
+
+    url = f"{url_path}/api_user/topup_user"
+    data = {"amount": 1,
+            "telegram_id": "808652965",
+            "unlimited": 1}
+    res = requests.post(url, params=data, headers=headers_)
+    print(res.json())
+    docs = ['Bible_God_mode.docx',
+            'footers.docx',
+            'pdf_test.docx',
+            'pdf_test_original.docx',
+            'report template.docx',
+            'test_both_near_tags.docx',
+            'test_file_keys.docx',
+            'test_near_tables.docx',
+            'test_some_tags_in_text.docx',
+            'test_strange_text.docx',
+            'test_table_in_other_places.docx',
+            'test_table_in_text.docx',
+            'test_tables_in_footers_headers.docx',
+            'test_tags_different_style.docx',
+            'typical.docx']
+
+    tags = []
+    print("Tags")
+    for file in docs:
+        url = f"{url_path}/api_user/keys"
+        files = {"file": open(f"test_files/{file}", "rb")}
+        start_time = time.time()
+        res = requests.post(url, files=files, headers=headers)
+        end_time = time.time()
+        print(f"{file}: {end_time - start_time}")
+        data = res.json()
+        for key in dict(data["keys"]).keys():
+            data["keys"][key] = "Solomon"
+        for key in dict(data["tables"]).keys():
+            data["tables"][key] = [
+                {
+                    "name": "Bitcoin",
+                    "symbol": "BTC",
+                    "price_usd": 39857.20,
+                    "price_eur": 34991.42,
+                    "price_gbp": 29489.55
+                },
+                {
+                    "name": "Ethereum",
+                    "symbol": "ETH",
+                    "price_usd": 2845.62,
+                    "price_eur": 2498.75,
+                    "price_gbp": 2104.89
+                },
+                {
+                    "name": "Ripple",
+                    "symbol": "XRP",
+                    "price_usd": 0.84,
+                    "price_eur": 0.74,
+                    "price_gbp": 0.62
+                }]
+        tags.append(data)
+
+    url = f"{url_path}/api_user/render_link"
+    async def request(session, it):
+        filename = {"filename": docs[it],
+                    "newfilename": docs[it]}
+        async with session.post(url, params=filename, json=tags[it], headers=headers) as resp:
+            json = await resp.json()
+            print(f"IT: {it}; ", json)
+
+    async def main():
+        async with aiohttp.ClientSession() as session:
+            tasks = list()
+            for i in range(len(docs)):
+                tasks.append(request(session, i))
+            await asyncio.gather(*tasks)
+
+    start_time = time.time()
+    asyncio.run(main())
+    end_time = time.time()
+    print(end_time - start_time)
+
+
+
+
+
 registration_with_API()
-get_access_token()
-get_tags()
-link_render()
+request_in_series()
+
+requests_in_parall()
+# get_tags()
+# link_render()
 
 
 #             async with get_async_session() as session:

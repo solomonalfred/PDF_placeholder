@@ -99,8 +99,11 @@ print(res.json())
 docs = ['Bible_God_mode.docx',"typical.docx"]
 
 async def request(session, it):
-    async with session.post(url, params={"filename": docs[it],
-            "newfilename": docs[it]}, json=data["keys"], headers=headers) as resp:
+    async with session.post(url,
+                            params={"filename": docs[it],
+                            "newfilename": docs[it]},
+                            json=data["keys"],
+                            headers=headers) as resp:
         if resp.status == 200:
             json = await resp.json()
             print(f"IT: {it}; ", json)
