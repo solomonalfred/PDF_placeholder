@@ -2,7 +2,7 @@ import os.path
 import re
 from docx import Document
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches
@@ -49,13 +49,14 @@ class DocxTemplatePlaceholder:
             self.error = ErrorType.internal_error
             return ErrorBlocker().process(self.error)
 
-    def __process(self, doc, tags):
+    def __process(self, doc, tags, tables=True):
 
         for p in doc.paragraphs:
             inline = p.runs
             flag = False
-            table_flag = self.__generate_table(tags[1], p, doc)
-            if table_flag: continue
+            if tables:
+                table_flag = self.__generate_table(tags[1], p, doc)
+                if table_flag: continue
             self.__placeholder_tags(inline, tags[0], flag)
 
         for table in doc.tables:
@@ -74,13 +75,13 @@ class DocxTemplatePlaceholder:
         return False
 
     def __fill_table(self, table, data):
-        table.style = 'Table Grid'
+        table.style = Table_items.TABLE_GRID
 
         hdr_cells = table.rows[0].cells
         keys = list(data[0].keys())
         for i, key in enumerate(keys):
             hdr_cells[i].text = key.capitalize().replace('_', ' ')
-            hdr_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            hdr_cells[i].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
             hdr_cells[i].paragraphs[0].runs[0].font.bold = True
             self.__set_cell_borders(hdr_cells[i])
         for item in data:
@@ -130,111 +131,94 @@ class DocxTemplatePlaceholder:
     def __placeholder_tags(self, inline, tags, flag):
         reg = ""
         for i in range(len(inline)):
-            left = inline[i].text.find(Inline.LEFT_BORDER)
-            left_part = inline[i].text.find(Inline.PART_LEFT_BORDER)
-            right = inline[i].text.find(Inline.RIGHT_BORDER)
-            right_part = inline[i].text.find(Inline.PART_RIGHT_BORDER)
-            if left != -1 and right != -1: reg = inline[i].text
-            elif left != -1:
-                reg += inline[i].text
-                inline[i].text = ""
+            borders = self.__check_regex_borders(inline[i].text)
+            if borders[0] != -1 and borders[2] != -1:
+                if len(reg):
+                    inline[i - 1].text = reg
+                reg = inline[i].text
+            elif borders[0] != -1:
+                reg = self.__splicing_tag(inline, i, reg)
                 flag = True
                 continue
-            elif right != -1 and flag:
+            elif borders[2] != -1 and flag:
                 reg += inline[i].text
-                inline[i].text = reg
                 flag = False
-            elif left == -1 and right == -1 and flag:
-                reg += inline[i].text
-                inline[i].text = ""
+            elif borders[0] == -1 and borders[2] == -1 and flag:
+                reg = self.__splicing_tag(inline, i, reg)
                 continue
-            elif left_part != -1:
-                if len(inline) > i + 1 and inline[i + 1].text[0] == Inline.PART_LEFT_BORDER:
-                    reg += inline[i].text
-                    inline[i].text = ""
+            elif borders[1] != -1:
+                future_part = len(inline) > i + 1 and inline[i + 1].text[0] == Inline.PART_LEFT_BORDER
+                past_part = len(reg) and reg[-1] == Inline.PART_LEFT_BORDER
+                if future_part or past_part:
+                    reg = self.__splicing_tag(inline, i, reg)
                     flag = True
-                    continue
-                else: continue
-            elif right_part != -1 and flag:
+                continue
+            elif borders[3] != -1 and flag:
                 if len(inline) > i + 1 and inline[i + 1].text[0] == Inline.PART_RIGHT_BORDER:
-                    reg += inline[i].text
-                    inline[i].text = ""
+                    reg = self.__splicing_tag(inline, i, reg)
                     continue
                 elif reg[-1] == Inline.PART_RIGHT_BORDER:
                     reg += inline[i].text
-                    inline[i].text = reg
                 else:
-                    reg += inline[i].text
-                    inline[i].text = ""
+                    reg = self.__splicing_tag(inline, i, reg)
                     continue
-            else: continue
+            else:
+                continue
             self.__replace_tags(tags, inline[i], reg)
             reg = ""
+        if len(reg):
+            inline[-1].text = reg
+
+
+    def __splicing_tag(self, inline, idx,  reg):
+        reg += inline[idx].text
+        inline[idx].text = ""
+        return reg
+
+
+    def __check_regex_borders(self, text: str):
+        left = text.find(Inline.LEFT_BORDER)
+        left_part = text.find(Inline.PART_LEFT_BORDER)
+        right = text.find(Inline.RIGHT_BORDER)
+        right_part = text.find(Inline.PART_RIGHT_BORDER)
+        return [left, left_part, right, right_part]
 
     def __replace_tags(self, tags, inline, reg):
+        skip = True
         for regex, replace in tags.items():
             if regex.search(reg):
                 text = regex.sub(replace, reg)
                 inline.text = text
+                skip = False
                 break
+        if skip:
+            inline.text = reg
 
     def __placeholder_footer_header(self):
         for section in self.template_document.sections:
-            self.__process(section.header, self.replace_tags)
-            self.__process(section.footer, self.replace_tags)
+            self.__process(section.header, self.replace_tags, False)
+            self.__process(section.footer, self.replace_tags, False)
 
     def __prepare_tags(self, tags):
         done_tags = dict()
         done_tb = dict()
-        if len(tags.items()) == 0: return [done_tags, done_tb]
-        if tags.get("keys") is not None:
-            for regex, replace in tags["keys"].items():
-                done_tags[re.compile(fr"<<{regex}>>")] = replace
-        tb_flag = tags.get("tables")
-        if tb_flag is None:
+        if len(tags.items()) == 0:
             return [done_tags, done_tb]
-        for regex, replace in tags["tables"].items():
-            done_tb[re.compile(fr"<<{regex}>>")] = replace
+        done_tags = self.__fill_dict_placeholders(Process_items.KEYS, tags)
+        done_tb = self.__fill_dict_placeholders(Process_items.TABLES, tags)
         return [done_tags, done_tb]
 
 
-if __name__ == "__main__":
-    data = {}
-    data['keys'] = {}
-    data['tables'] = {}
-    data["keys"]["hi"] = "Привет"
-    data["keys"]["buy"] = "Покеда"
-    data["keys"]["name"] = "Laplas"
-    data["keys"]["lastname"] = "Solomon"
-    data['keys']['data'] = "February"
-    data['keys']['satana'] = 'God'
+    def __regex_dict(self, name: str, tags: dict):
+        placeholders = dict()
+        for regex, replace in tags[name].items():
+            placeholders[re.compile(Process_items.REGEX_FORM.format(regex))] = replace
+        return placeholders
 
-    data['tables']['cryptocurrency_tb'] = [
-            {
-                "name": "Bitcoin",
-                "symbol": "BTC",
-                "price_usd": 39857.20,
-                "price_eur": 34991.42,
-                "price_gbp": 29489.55
-            },
-            {
-                "name": "Ethereum",
-                "symbol": "ETH",
-                "price_usd": 2845.62,
-                "price_eur": 2498.75,
-                "price_gbp": 2104.89
-            },
-            {
-                "name": "Ripple",
-                "symbol": "XRP",
-                "price_usd": 0.84,
-                "price_eur": 0.74,
-                "price_gbp": 0.62
-            }
-        ]
 
-    DocxTemplatePlaceholder("out_test_files",
-                            "../test_files/footers.docx",
-                            "footers",
-                            data
-                            ).process()
+    def __fill_dict_placeholders(self, name: str, tags: dict):
+        done_dict = dict()
+        check_flag = tags.get(name)
+        if check_flag is not None:
+            done_dict = self.__regex_dict(name, tags)
+        return done_dict

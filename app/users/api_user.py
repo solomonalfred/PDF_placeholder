@@ -1,6 +1,5 @@
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse, FileResponse, Response
-from pathlib import Path
 from typing import Dict
 from app.dependencies.oauth2_api import *
 from app.modules.user_modules import *
@@ -57,7 +56,7 @@ async def upload_docx(
                     return JSONResponse(content=keys_response(res))
                 else:
                     response.status_code = 400
-                    return {msg.MSG: msg.WRONG_DOCUMENT_FORMAT}
+                    return JSONResponse(content={msg.MSG: msg.WRONG_DOCUMENT_FORMAT})
         except:
             response.status_code = 500
             return {msg.MSG: msg.INTERNAL_SERVER_ERROR}

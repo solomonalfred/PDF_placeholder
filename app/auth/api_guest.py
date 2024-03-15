@@ -6,7 +6,6 @@ import aiohttp
 
 from app.config import *
 from app.dependencies.oauth2 import *
-from configurations import ADMIN
 
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 31 * 12
@@ -17,7 +16,6 @@ router = APIRouter(
 )
 database = DBManager("PDF_placeholder", "users")
 server_iterator = itertools.cycle(servers)
-
 
 
 @router.post("/signup")
@@ -80,6 +78,7 @@ async def sign_in(
                 response.status_code = 401
             res = await resp.json()
             return res
+
 
 @router.get("/extra_token")
 async def extra_token(

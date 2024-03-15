@@ -17,12 +17,3 @@ class Core:
 
     def process(self):
         return DocxTemplatePlaceholder(self.username, self.template, self.new, self.tags).process()
-
-
-if __name__ == "__main__":
-    data = {"hi": "Привет",
-            "name": "Nikita",
-            "lastname": "Bogdanov",
-            "data": "23.12",
-            "buy": "Пока"}
-    Core("out_test_files", "../test_files/footers.docx", "out", data).process()

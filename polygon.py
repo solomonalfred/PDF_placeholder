@@ -8,7 +8,7 @@ import asyncio
 # host url: http://0.0.0.0:7777
 # prod url: https://api.pdfkabot.ru
 
-url_path = 'http://0.0.0.0:7777'
+url_path = 'https://api.pdfkabot.ru'
 
 def registration_with_API():
     url = f"{url_path}/api/signup"

@@ -144,7 +144,7 @@ def balancer_process_response(file_path, newfilename, filename, username, data):
     newfilename = newfilename.replace('.pdf', '').replace('.docx', '')
     filler = Core(username, file_path, newfilename, data).process()
     if filler.find(newfilename) == -1:
-        return [False, 400, {Details.RESPONCE: msg.INTERNAL_SERVER_ERROR}]
+        return [False, 400, {Details.RESPONCE: filler}]
     else:
         file = Path(filler).name
         file_size = os.path.getsize(filler)

@@ -24,7 +24,7 @@ class Convert2PDF:
         convert[5] = directory
         convert[6] = self.file
         subprocess.call(convert)
-        # os.remove(self.file)
+        os.remove(self.file)
         old = self.file.replace(Process_items.NEW_DOCX, PDF_items.PDF_TMP)
         new = os.path.join(directory, self.new + PDF_items.PDF)
         subprocess.call([PDF_items.MOVE, old, new])

@@ -21,10 +21,17 @@ class Table_items:
     SPACE = "w:space"
     COLOR = "w:color"
 
+    TABLE_GRID = 'Table Grid'
+
 
 class Process_items:
     DOCX = '.docx'
     NEW_DOCX = '_new.docx'
+
+    KEYS = "keys"
+    TABLES = "tables"
+
+    REGEX_FORM = r"<<{}>>"
 
 
 class PDF_items:
