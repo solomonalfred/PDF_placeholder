@@ -12,6 +12,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from core.core_object import Core
+from constants.core_items import *
 
 
 def save_file(username: str, input_file_data: UploadFile = File(...)):
@@ -47,7 +48,10 @@ def get_tags(file_path: str):
             left_part = inline[i].text.find("<")
             right = inline[i].text.find(">>")
             right_part = inline[i].text.find(">")
-            if left != -1 and right != -1: reg = inline[i].text
+            if left != -1 and right != -1:
+                if len(reg):
+                    inline[i - 1].text = reg
+                reg = inline[i].text
             elif left != -1:
                 reg += inline[i].text
                 flag = True
@@ -55,20 +59,22 @@ def get_tags(file_path: str):
             elif right != -1 and flag:
                 reg += inline[i].text
                 flag = False
-            elif left == -1 and right == -1 and flag:
+            elif left == -1 and right == -1 and flag and left_part == -1 and right_part == -1:
                 reg += inline[i].text
                 continue
             elif left_part != -1:
-                if len(inline) > i + 1 and inline[i + 1].text[0] == "<":
+                future_part = len(inline) > i + 1 and inline[i + 1].text[0] == Inline.PART_LEFT_BORDER
+                past_part = len(reg) and reg[-1] == Inline.PART_LEFT_BORDER
+                if future_part or past_part:
                     reg += inline[i].text
                     flag = True
-                    continue
-                else: continue
+                continue
             elif right_part != -1 and flag:
                 if len(inline) > i + 1 and inline[i + 1].text[0] == ">":
                     reg += inline[i].text
                     continue
-                elif reg[-1] == ">": reg += inline[i].text
+                elif reg[-1] == ">":
+                    reg += inline[i].text
                 else:
                     reg += inline[i].text
                     continue
@@ -77,6 +83,8 @@ def get_tags(file_path: str):
 
             replace_tags(reg)
             reg = ""
+        if len(reg):
+            inline[-1].text = reg
 
     def replace_tags(reg):
         matches = re.findall(pattern, reg)
@@ -94,7 +102,8 @@ def get_tags(file_path: str):
             process(header)
             footer = section.footer
             process(footer)
-    except:
+    except Exception as e:
+        print(e)
         pass
     return [list(set(tags)), list(set(tb))]
 
@@ -136,9 +145,9 @@ def temp_excel_builder(res):
 
 
 def balancer_process_response(file_path, newfilename, filename, username, data):
-    if file_path is None or file_path[Table_items.DELETED]:
+    if file_path is None or file_path[Tables_items.DELETED]:
         return [False, 400, {Details.RESPONCE: msg.TP_DELETED}]
-    file_path = file_path[Table_items.PATH]
+    file_path = file_path[Tables_items.PATH]
     if len(newfilename) == 0:
         newfilename = filename
     newfilename = newfilename.replace('.pdf', '').replace('.docx', '')
@@ -154,20 +163,20 @@ def balancer_process_response(file_path, newfilename, filename, username, data):
 
 def balancer_transaction_fill_record(tmp):
     t = dict()
-    t[Table_items.TYPE] = tmp[Table_items.TYPE]
-    t[Table_items.BALANCE] = tmp[Table_items.BALANCE]
-    if tmp[Table_items.UNLIMITED]:
-        t[Table_items.AMOUNT] = Table_items.UNLIMITED
+    t[Tables_items.TYPE] = tmp[Tables_items.TYPE]
+    t[Tables_items.BALANCE] = tmp[Tables_items.BALANCE]
+    if tmp[Tables_items.UNLIMITED]:
+        t[Tables_items.AMOUNT] = Tables_items.UNLIMITED
     else:
-        t[Table_items.AMOUNT] = tmp[Table_items.AMOUNT]
-    if t[Table_items.TYPE] == Details.CREDIT:
-        t[Table_items.FILE] = tmp[Table_items.FILE]
-        t[Table_items.PAGE_PROCESSED] = tmp[Table_items.PAGE_PROCESSED]
+        t[Tables_items.AMOUNT] = tmp[Tables_items.AMOUNT]
+    if t[Tables_items.TYPE] == Details.CREDIT:
+        t[Tables_items.FILE] = tmp[Tables_items.FILE]
+        t[Tables_items.PAGE_PROCESSED] = tmp[Tables_items.PAGE_PROCESSED]
     else:
-        t[Table_items.FILE] = "-"
-        t[Table_items.TEMPLATE] = "-"
-        t[Table_items.PAGE_PROCESSED] = "-"
-    t[Table_items.CRATED_AT] = tmp[Table_items.CRATED_AT]
+        t[Tables_items.FILE] = "-"
+        t[Tables_items.TEMPLATE] = "-"
+        t[Tables_items.PAGE_PROCESSED] = "-"
+    t[Tables_items.CRATED_AT] = tmp[Tables_items.CRATED_AT]
     return t
 
 

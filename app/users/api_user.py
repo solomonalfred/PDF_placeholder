@@ -36,12 +36,12 @@ async def upload_docx(
     :return: dictionary of placeholder items in json \n
     '''
     try:
-        file_path = save_file(current_user[Table_items.NICKNAME], file)
+        file_path = save_file(current_user[Tables_items.NICKNAME], file)
         file_size = os.path.getsize(file_path)
     except:
         response.status_code = 500
         return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
-    user_id = current_user[Table_items.ID]
+    user_id = current_user[Tables_items.ID]
     async with aiohttp.ClientSession() as session:
         server = ""
         worker = ""
@@ -59,7 +59,7 @@ async def upload_docx(
             await asyncio.sleep(0.5)
         server = EndpointsStatus.SERVERS[worker]
         try:
-            async with session.get(server_path.KEYS.format(server), params={Table_items.PATH: file_path}) as resp:
+            async with session.get(server_path.KEYS.format(server), params={Tables_items.PATH: file_path}) as resp:
                 await lb_manager.free_worker(EndpointsStatus.KEYS,worker)
                 if resp.status == 200:
                     response.status_code = 200
@@ -100,7 +100,7 @@ async def process_data(
     '''
     filename = {Details.FILENAME: filename,
                 Details.NEW_FILENAME: newfilename,
-                Details.USERNAME: current_user[Table_items.NICKNAME]}
+                Details.USERNAME: current_user[Tables_items.NICKNAME]}
     async with aiohttp.ClientSession() as session:
         # server = next(server_iterator)
         server = ""
@@ -159,7 +159,7 @@ async def process_data(
     '''
     filename = {Details.FILENAME: filename,
                 Details.NEW_FILENAME: newfilename,
-                Details.USERNAME: current_user[Table_items.NICKNAME]}
+                Details.USERNAME: current_user[Tables_items.NICKNAME]}
     async with aiohttp.ClientSession() as session:
         # server = next(server_iterator)
         server = ""
@@ -191,7 +191,7 @@ async def process_data(
                     url = LINK_URL.format(SERVER_URL,
                                           urlencode(
                                               {Details.FILENAME: Path(filler).name,
-                                               Details.USERNAME: current_user[Table_items.NICKNAME]}
+                                               Details.USERNAME: current_user[Tables_items.NICKNAME]}
                                           ))
                     result = {Details.URL: url}
                 else:
@@ -213,7 +213,7 @@ async def templates_list(response: Response,
     (example: headers = {"Authorization": "Bearer <your_access_token>"}) \n
     :return: list of templates \n
     '''
-    username = current_user[Table_items.NICKNAME]
+    username = current_user[Tables_items.NICKNAME]
     user = {"username": username}
     async with aiohttp.ClientSession() as session:
         # server = next(server_iterator)
@@ -261,7 +261,7 @@ async def delete_template(
     (example: headers = {"Authorization": "Bearer <your_access_token>"}) \n
     :return: response status of deleting template \n
     '''
-    username = current_user[Table_items.NICKNAME]
+    username = current_user[Tables_items.NICKNAME]
     del_list = {Details.USERNAME: username,
                 Details.TEMPLATENAME: filename}
     async with aiohttp.ClientSession() as session:
@@ -358,7 +358,7 @@ async def transaction_list(
     (example: headers = {"Authorization": "Bearer <your_access_token>"}) \n
     :return: list of dictionaries with transaction's record \n
     '''
-    username = current_user[Table_items.NICKNAME]
+    username = current_user[Tables_items.NICKNAME]
     user = {Details.USERNAME: username}
     async with aiohttp.ClientSession() as session:
         # server = next(server_iterator)
@@ -404,7 +404,7 @@ async def transaction_list_excel(
     (example: headers = {"Authorization": "Bearer <your_access_token>"}) \n
     :return: transaction's table in excel \n
     '''
-    username = current_user[Table_items.NICKNAME]
+    username = current_user[Tables_items.NICKNAME]
     user = {Details.USERNAME: username}
     async with aiohttp.ClientSession() as session:
         # server = next(server_iterator)
@@ -455,7 +455,7 @@ async def refresh_password(
     :param new_password: insert new password (required) \n
     :return: response of reset password \n
     '''
-    username = current_user[Table_items.NICKNAME]
+    username = current_user[Tables_items.NICKNAME]
     user = {Details.USERNAME: username,
             Details.NEW_PASSWORD: new_password}
     async with aiohttp.ClientSession() as session:

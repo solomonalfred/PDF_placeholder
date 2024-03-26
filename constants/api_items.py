@@ -1,4 +1,4 @@
-class Table_items:
+class Tables_items:
     ID = 'id'
     NAME = "name"
     NICKNAME = "nickname"

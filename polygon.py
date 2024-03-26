@@ -149,7 +149,8 @@ def request_in_series():
             'test_table_in_text.docx',
             'test_tables_in_footers_headers.docx',
             'test_tags_different_style.docx',
-            'typical.docx']
+            'typical.docx',
+            'NDA-2 2.docx']
 
     tags = []
     print("Tags")
@@ -295,14 +296,19 @@ def unlimited():
     requests.post(url_, params=data_, headers=headers_)
 
 
+def get_tags_nda():
+    url = f"{url_path}/api_user/keys"
+    files = {"file": open("test_files/NDA-2 2.docx", "rb")}
+    res = requests.post(url, files=files, headers=headers)
+    data = res.json()
+    print(data)
+    return data
+
+
 
 registration_with_API()
 
-unlimited()
-
 request_in_series()
-
-requests_in_parall()
 
 
 # get_tags()

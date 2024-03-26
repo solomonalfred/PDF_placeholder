@@ -101,13 +101,13 @@ async def delete_template(
 ):
     async with get_async_session() as session:
         user_data = await find_user_by_nickname(session, username)
-        delete_path_ = await find_docx_file(session, user_data[Table_items.ID], templatename)
+        delete_path_ = await find_docx_file(session, user_data[Tables_items.ID], templatename)
         response.status_code = 404
-        if delete_path_ is not None and not delete_path_[Table_items.DELETED]:
-            delete_path = delete_path_[Table_items.PATH]
+        if delete_path_ is not None and not delete_path_[Tables_items.DELETED]:
+            delete_path = delete_path_[Tables_items.PATH]
             os.remove(delete_path)
             await delete_docx_file(session,
-                                   user_data[Table_items.ID],
+                                   user_data[Tables_items.ID],
                                    templatename)
             response.status_code = 200
             return JSONResponse(content={msg.MSG: msg.TP_DELETED})
@@ -119,7 +119,7 @@ async def list_templates(response: Response, username: str):
     try:
         async with get_async_session() as session:
             user_data = await find_user_by_nickname(session, username)
-            templates = await find_docx_files(session, user_data[Table_items.ID])
+            templates = await find_docx_files(session, user_data[Tables_items.ID])
             return {msg.TEMPLATES: templates}
     except:
         response.status_code = 401
@@ -141,7 +141,7 @@ async def process(response: Response,
     async with get_async_session() as session:
         response.status_code = 200
         user = await find_user_by_nickname(session, username)
-        file_path = await find_docx_file(session, user[Table_items.ID], filename)
+        file_path = await find_docx_file(session, user[Tables_items.ID], filename)
         resp = balancer_process_response(file_path, newfilename, filename, username, data)
         if not resp[0]:
             response.status_code = resp[1]
@@ -150,7 +150,7 @@ async def process(response: Response,
                                               resp[2][Details.RESPONCE][0],
                                               resp[2][Details.RESPONCE][1],
                                               resp[2][Details.RESPONCE][3],
-                                              user[Table_items.ID],
+                                              user[Tables_items.ID],
                                               resp[2][Details.RESPONCE][2],
                                               filename)
         if result:
@@ -167,7 +167,7 @@ async def debit(
 ):
     async with get_async_session() as session:
         user = await find_user_by_telegram(session, telegram_id)
-        deb = await transaction_debit(session, user[Table_items.ID], Decimal(amount), bool(unlimited))
+        deb = await transaction_debit(session, user[Tables_items.ID], Decimal(amount), bool(unlimited))
     if unlimited:
         return {msg.BALANCE: deb, Details.RATE: Details.UNLIMITED}
     return {msg.BALANCE: deb, Details.RATE: Details.COMMON}
@@ -180,14 +180,14 @@ async def transaction_list(
     try:
         async with get_async_session() as session:
             user = await find_user_by_nickname(session, username)
-            list = await transaction_list_(session, user[Table_items.ID])
+            list = await transaction_list_(session, user[Tables_items.ID])
             result = []
             for tmp in list:
                 res = balancer_transaction_fill_record(tmp)
-                if tmp[Table_items.TYPE] == Details.CREDIT:
-                    res[Table_items.TEMPLATE] = await find_docx_file_by_id(session,
-                                                                           user[Table_items.ID],
-                                                                           tmp[Table_items.TEMPLATE])
+                if tmp[Tables_items.TYPE] == Details.CREDIT:
+                    res[Tables_items.TEMPLATE] = await find_docx_file_by_id(session,
+                                                                            user[Tables_items.ID],
+                                                                            tmp[Tables_items.TEMPLATE])
                 result.append(res)
             return {Details.TRANSACTIONS: result}
     except:
@@ -204,14 +204,14 @@ async def refresh_password(
     async with get_async_session() as session:
         user = await find_user_by_nickname(session, username)
         renew_pass = await update_user(session,
-                                       user[Table_items.NAME],
-                                       user[Table_items.NICKNAME],
-                                       user[Table_items.EMAIL],
-                                       user[Table_items.TELEGRAM_ID],
+                                       user[Tables_items.NAME],
+                                       user[Tables_items.NICKNAME],
+                                       user[Tables_items.EMAIL],
+                                       user[Tables_items.TELEGRAM_ID],
                                        hashed.hash_password(new_password),
-                                       user[Table_items.ROLE],
-                                       user[Table_items.BALANCE],
-                                       user[Table_items.UNLIMITED])
+                                       user[Tables_items.ROLE],
+                                       user[Tables_items.BALANCE],
+                                       user[Tables_items.UNLIMITED])
         if renew_pass:
             return {msg.MSG: msg.SUCCESS_REFRESH}
         response.status_code = 401

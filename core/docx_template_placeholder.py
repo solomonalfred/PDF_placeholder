@@ -143,7 +143,7 @@ class DocxTemplatePlaceholder:
             elif borders[2] != -1 and flag:
                 reg += inline[i].text
                 flag = False
-            elif borders[0] == -1 and borders[2] == -1 and flag:
+            elif borders[0] == -1 and borders[2] == -1 and flag and borders[1] == -1 and borders[3] == -1:
                 reg = self.__splicing_tag(inline, i, reg)
                 continue
             elif borders[1] != -1:
