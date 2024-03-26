@@ -8,6 +8,7 @@ from constants.api_items import *
 from urllib.parse import urlencode
 import itertools
 import aiohttp
+from database.mongo_balancer_manager import *
 
 router = APIRouter(
     prefix="/api_user",
@@ -16,7 +17,8 @@ router = APIRouter(
     responses={"404": {msg.MSG: msg.CREDENTIAL_EXEPTION}}
 )
 
-database = DBManager("PDF_placeholder", "users")
+lb_manager = LoadBalancerManager(EndpointsStatus.DB_NAME,
+                                 EndpointsStatus.COLLECT_NAME)
 server_iterator = itertools.cycle(servers)
 
 
@@ -41,9 +43,24 @@ async def upload_docx(
         return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
     user_id = current_user[Table_items.ID]
     async with aiohttp.ClientSession() as session:
-        server = next(server_iterator)
+        server = ""
+        worker = ""
+        while True:
+            flag = False
+            for i in EndpointsStatus.WORKERS:
+                is_free = await lb_manager.check_worker(EndpointsStatus.KEYS,i)
+                if is_free:
+                    await lb_manager.take_worker(EndpointsStatus.KEYS, i)
+                    flag = True
+                    worker = i
+                    break
+            if flag:
+                break
+            await asyncio.sleep(0.5)
+        server = EndpointsStatus.SERVERS[worker]
         try:
             async with session.get(server_path.KEYS.format(server), params={Table_items.PATH: file_path}) as resp:
+                await lb_manager.free_worker(EndpointsStatus.KEYS,worker)
                 if resp.status == 200:
                     response.status_code = 200
                     res = await resp.json()
@@ -57,7 +74,8 @@ async def upload_docx(
                 else:
                     response.status_code = 400
                     return JSONResponse(content={msg.MSG: msg.WRONG_DOCUMENT_FORMAT})
-        except:
+        except Exception as e:
+            await lb_manager.free_worker(EndpointsStatus.KEYS, worker)
             response.status_code = 500
             return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
 
@@ -84,9 +102,25 @@ async def process_data(
                 Details.NEW_FILENAME: newfilename,
                 Details.USERNAME: current_user[Table_items.NICKNAME]}
     async with aiohttp.ClientSession() as session:
-        server = next(server_iterator)
+        # server = next(server_iterator)
+        server = ""
+        worker = ""
+        while True:
+            flag = False
+            for i in EndpointsStatus.WORKERS:
+                is_free = await lb_manager.check_worker(EndpointsStatus.RENDER, i)
+                if is_free:
+                    await lb_manager.take_worker(EndpointsStatus.RENDER, i)
+                    flag = True
+                    worker = i
+                    break
+            if flag:
+                break
+            await asyncio.sleep(0.5)
+        server = EndpointsStatus.SERVERS[worker]
         try:
             async with session.get(server_path.RENDER.format(server), params=filename, json=data) as resp:
+                await lb_manager.free_worker(EndpointsStatus.RENDER, worker)
                 if resp.status == 200:
                     response.status_code = 200
                     res = await resp.json()
@@ -100,6 +134,7 @@ async def process_data(
                     response.status_code = 400
                     return {msg.MSG: msg.TEMPLATE_NOT_EXISTS}
         except:
+            await lb_manager.free_worker(EndpointsStatus.RENDER, worker)
             response.status_code = 500
             return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
 
@@ -126,9 +161,25 @@ async def process_data(
                 Details.NEW_FILENAME: newfilename,
                 Details.USERNAME: current_user[Table_items.NICKNAME]}
     async with aiohttp.ClientSession() as session:
-        server = next(server_iterator)
+        # server = next(server_iterator)
+        server = ""
+        worker = ""
+        while True:
+            flag = False
+            for i in EndpointsStatus.WORKERS:
+                is_free = await lb_manager.check_worker(EndpointsStatus.RENDER_LINK, i)
+                if is_free:
+                    await lb_manager.take_worker(EndpointsStatus.RENDER_LINK, i)
+                    flag = True
+                    worker = i
+                    break
+            if flag:
+                break
+            await asyncio.sleep(0.5)
+        server = EndpointsStatus.SERVERS[worker]
         try:
             async with session.get(server_path.RENDER_LINK.format(server), params=filename, json=data) as resp:
+                await lb_manager.free_worker(EndpointsStatus.RENDER_LINK, worker)
                 if resp.status == 200:
                     response.status_code = 200
                     res = await resp.json()
@@ -148,6 +199,7 @@ async def process_data(
                     return {msg.MSG: msg.TEMPLATE_NOT_EXISTS}
                 return JSONResponse(content=result)
         except:
+            await lb_manager.free_worker(EndpointsStatus.RENDER_LINK, worker)
             response.status_code = 500
             return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
 
@@ -164,9 +216,25 @@ async def templates_list(response: Response,
     username = current_user[Table_items.NICKNAME]
     user = {"username": username}
     async with aiohttp.ClientSession() as session:
-        server = next(server_iterator)
+        # server = next(server_iterator)
+        server = ""
+        worker = ""
+        while True:
+            flag = False
+            for i in EndpointsStatus.WORKERS:
+                is_free = await lb_manager.check_worker(EndpointsStatus.TEMPLATES, i)
+                if is_free:
+                    await lb_manager.take_worker(EndpointsStatus.TEMPLATES, i)
+                    flag = True
+                    worker = i
+                    break
+            if flag:
+                break
+            await asyncio.sleep(0.5)
+        server = EndpointsStatus.SERVERS[worker]
         try:
             async with session.get(server_path.TEMPLATES.format(server), params=user) as resp:
+                await lb_manager.free_worker(EndpointsStatus.TEMPLATES, worker)
                 if resp.status == 200:
                     response.status_code = 200
                     res = await resp.json()
@@ -175,6 +243,7 @@ async def templates_list(response: Response,
                     response.status_code = 500
                     return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
         except:
+            await lb_manager.free_worker(EndpointsStatus.TEMPLATES, worker)
             response.status_code = 500
             return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
 
@@ -196,9 +265,25 @@ async def delete_template(
     del_list = {Details.USERNAME: username,
                 Details.TEMPLATENAME: filename}
     async with aiohttp.ClientSession() as session:
-        server = next(server_iterator)
+        # server = next(server_iterator)
+        server = ""
+        worker = ""
+        while True:
+            flag = False
+            for i in EndpointsStatus.WORKERS:
+                is_free = await lb_manager.check_worker(EndpointsStatus.DELETE_TEMPLATE, i)
+                if is_free:
+                    await lb_manager.take_worker(EndpointsStatus.DELETE_TEMPLATE, i)
+                    flag = True
+                    worker = i
+                    break
+            if flag:
+                break
+            await asyncio.sleep(0.5)
+        server = EndpointsStatus.SERVERS[worker]
         try:
             async with session.delete(server_path.DELETE.format(server), params=del_list) as resp:
+                await lb_manager.free_worker(EndpointsStatus.DELETE_TEMPLATE, worker)
                 if resp.status == 200:
                     response.status_code = resp.status
                     return {msg.MSG: msg.DELETED}
@@ -206,6 +291,7 @@ async def delete_template(
                     response.status_code = 400
                     return {msg.MSG: msg.NOT_FOUND}
         except:
+            await lb_manager.free_worker(EndpointsStatus.DELETE_TEMPLATE, worker)
             response.status_code = 400
             return {msg.MSG: msg.NOT_FOUND}
 
@@ -236,11 +322,28 @@ async def debit(
             data = {Details.TELEGRAM_ID: telegram_id,
                     Details.AMOUNT: amount,
                     Details.UNLIMITED: unlimited}
-            server = next(server_iterator)
+            # server = next(server_iterator)
+            server = ""
+            worker = ""
+            while True:
+                flag = False
+                for i in EndpointsStatus.WORKERS:
+                    is_free = await lb_manager.check_worker(EndpointsStatus.TOPUP_USER, i)
+                    if is_free:
+                        await lb_manager.take_worker(EndpointsStatus.TOPUP_USER, i)
+                        flag = True
+                        worker = i
+                        break
+                if flag:
+                    break
+                await asyncio.sleep(0.5)
+            server = EndpointsStatus.SERVERS[worker]
             async with session.post(server_path.BALANCE.format(server), params=data) as resp:
+                await lb_manager.free_worker(EndpointsStatus.TOPUP_USER, worker)
                 res = await resp.json()
                 return JSONResponse(content=res)
         except:
+            await lb_manager.free_worker(EndpointsStatus.TOPUP_USER, worker)
             response.status_code = 500
             return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
 
@@ -258,9 +361,25 @@ async def transaction_list(
     username = current_user[Table_items.NICKNAME]
     user = {Details.USERNAME: username}
     async with aiohttp.ClientSession() as session:
-        server = next(server_iterator)
+        # server = next(server_iterator)
+        server = ""
+        worker = ""
+        while True:
+            flag = False
+            for i in EndpointsStatus.WORKERS:
+                is_free = await lb_manager.check_worker(EndpointsStatus.TRANSACTIONS, i)
+                if is_free:
+                    await lb_manager.take_worker(EndpointsStatus.TRANSACTIONS, i)
+                    flag = True
+                    worker = i
+                    break
+            if flag:
+                break
+            await asyncio.sleep(0.5)
+        server = EndpointsStatus.SERVERS[worker]
         try:
             async with session.get(server_path.TRANSACTIONS.format(server), params=user) as resp:
+                await lb_manager.free_worker(EndpointsStatus.TRANSACTIONS, worker)
                 if resp.status == 200:
                     response.status_code = 200
                     res = await resp.json()
@@ -269,6 +388,7 @@ async def transaction_list(
                     response.status_code = 500
                     return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
         except:
+            await lb_manager.free_worker(EndpointsStatus.TRANSACTIONS, worker)
             response.status_code = 500
             return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
 
@@ -287,9 +407,25 @@ async def transaction_list_excel(
     username = current_user[Table_items.NICKNAME]
     user = {Details.USERNAME: username}
     async with aiohttp.ClientSession() as session:
-        server = next(server_iterator)
+        # server = next(server_iterator)
+        server = ""
+        worker = ""
+        while True:
+            flag = False
+            for i in EndpointsStatus.WORKERS:
+                is_free = await lb_manager.check_worker(EndpointsStatus.TRANSACTIONS_EXPORT, i)
+                if is_free:
+                    await lb_manager.take_worker(EndpointsStatus.TRANSACTIONS_EXPORT, i)
+                    flag = True
+                    worker = i
+                    break
+            if flag:
+                break
+            await asyncio.sleep(0.5)
+        server = EndpointsStatus.SERVERS[worker]
         try:
             async with session.get(server_path.TRANSACTIONS.format(server), params=user) as resp:
+                await lb_manager.free_worker(EndpointsStatus.TRANSACTIONS_EXPORT, worker)
                 if resp.status == 200:
                     response.status_code = 200
                     res = await resp.json()
@@ -301,6 +437,7 @@ async def transaction_list_excel(
                     response.status_code = 500
                     return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
         except:
+            await lb_manager.free_worker(EndpointsStatus.TRANSACTIONS_EXPORT, worker)
             response.status_code = 500
             return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
 
@@ -322,9 +459,25 @@ async def refresh_password(
     user = {Details.USERNAME: username,
             Details.NEW_PASSWORD: new_password}
     async with aiohttp.ClientSession() as session:
-        server = next(server_iterator)
+        # server = next(server_iterator)
+        server = ""
+        worker = ""
+        while True:
+            flag = False
+            for i in EndpointsStatus.WORKERS:
+                is_free = await lb_manager.check_worker(EndpointsStatus.RESET_PASSWORD, i)
+                if is_free:
+                    await lb_manager.take_worker(EndpointsStatus.RESET_PASSWORD, i)
+                    flag = True
+                    worker = i
+                    break
+            if flag:
+                break
+            await asyncio.sleep(0.5)
+        server = EndpointsStatus.SERVERS[worker]
         try:
             async with session.post(server_path.PASSWORD.format(server), params=user) as resp:
+                await lb_manager.free_worker(EndpointsStatus.RESET_PASSWORD, worker)
                 if resp.status == 200:
                     response.status_code = 200
                     res = await resp.json()
@@ -333,6 +486,7 @@ async def refresh_password(
                     response.status_code = 500
                     return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
         except:
+            await lb_manager.free_worker(EndpointsStatus.RESET_PASSWORD, worker)
             response.status_code = 500
             return {msg.MSG: msg.INTERNAL_SERVER_ERROR}
 

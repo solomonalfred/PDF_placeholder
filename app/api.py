@@ -13,6 +13,7 @@ from users import user
 from users import api_user
 from links import link
 from app.dependencies.hasher import PasswordManager
+from database.mongo_balancer_manager import *
 
 app = FastAPI(
     title=PDF_DOCUMENTATION.TITLE,
@@ -22,6 +23,10 @@ app = FastAPI(
 
 templates = Jinja2Templates(directory="../templates")
 hashed = PasswordManager()
+lb_manager = LoadBalancerManager(EndpointsStatus.DB_NAME,
+                                 EndpointsStatus.COLLECT_NAME)
+
+
 # app.include_router(guest.router)
 app.include_router(api_guest.router)
 # app.include_router(user.router)
@@ -34,6 +39,7 @@ async def main_page(request: Request):
     return templates.TemplateResponse("main_page.html", {"request": request})
 
 if __name__ == "__main__":
+    lb_manager.build()
     config = Config(
         app=app,
         host="0.0.0.0",

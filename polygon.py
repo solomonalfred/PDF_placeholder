@@ -188,6 +188,7 @@ def request_in_series():
             }]
         tags.append(data)
     print("\n\n\n\nLinks")
+    main_start_time = time.time()
     for file in range(len(docs)):
         filename = {"filename": docs[file],
                     "newfilename": docs[file].replace(".docx", '.pdf')}
@@ -198,24 +199,11 @@ def request_in_series():
         end_time = time.time()
         print(f"{file}: {end_time - start_time}")
         print(res.json())
+    main_end_time = time.time()
+    print(f"Итоговое время работы: {main_end_time-main_start_time}---------------------------------------------------------------------")
 
 
 def requests_in_parall():
-    url = f"{url_path}/api/access_token"
-    data = {
-        "username": "admin",
-        "password": "12345"
-    }
-    res = requests.post(url, data=data)
-    token_ = res.json()
-    headers_ = {"Authorization": f"{token_['token_type']} {token_['access_token']}"}
-
-    url = f"{url_path}/api_user/topup_user"
-    data = {"amount": 1,
-            "telegram_id": "808652965",
-            "unlimited": 1}
-    res = requests.post(url, params=data, headers=headers_)
-    print(res.json())
     docs = ['Bible_God_mode.docx',
             'footers.docx',
             'pdf_test.docx',
@@ -290,13 +278,33 @@ def requests_in_parall():
     print(end_time - start_time)
 
 
+def unlimited():
+    url_ = f"{url_path}/api/access_token"
+    data_ = {
+        "username": "admin",
+        "password": "12345"
+    }
+    res_ = requests.post(url_, data=data_)
+    token_ = res_.json()
+    headers_ = {"Authorization": f"{token_['token_type']} {token_['access_token']}"}
+
+    url_ = f"{url_path}/api_user/topup_user"
+    data_ = {"amount": 1,
+            "telegram_id": "808652971",
+            "unlimited": 1}
+    requests.post(url_, params=data_, headers=headers_)
 
 
 
 registration_with_API()
+
+unlimited()
+
 request_in_series()
 
 requests_in_parall()
+
+
 # get_tags()
 # link_render()
 
