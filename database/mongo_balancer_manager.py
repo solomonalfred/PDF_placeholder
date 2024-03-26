@@ -12,7 +12,7 @@ class LoadBalancerManager:
         self.database = self.client[database_name]
         self.collection = self.database[collection_name]
 
-        self.sync_client = pymongo.MongoClient("mongodb://localhost:27017")
+        self.sync_client = pymongo.MongoClient("mongodb://mongodb:27017")
         self.sync_database = self.sync_client[database_name]
         self.sync_collection = self.sync_database[collection_name]
 
